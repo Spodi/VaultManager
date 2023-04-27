@@ -109,12 +109,12 @@ class CueIndex {
 class CueTrack {
     #region Definition
     [Int16]$Number
-    [ValidatePattern('^[a-zA-Z0-9]{5}\d{7}$')][String]$ISRC
-    [ValidateLength(1,80)][string]$Performer
-    [ValidateLength(1,80)][string]$Title
-    [ValidateLength(1,80)][string]$Songwriter
-    [ValidateSet('AUDIO','CDG','MODE1/2048','MODE1/2352','MODE2/2048','MODE2/2324','MODE2/2336','MODE2/2352','CDI/2336','CDI/2352')][String]$DataType
-    [ValidateSet('DCP','4CH','PRE','SCMS','DATA')][String[]]$Flags
+    [ValidateSet('AUDIO', 'CDG', 'MODE1/2048', 'MODE1/2352', 'MODE2/2048', 'MODE2/2324', 'MODE2/2336', 'MODE2/2352', 'CDI/2336', 'CDI/2352')][String]$DataType
+    [ValidateSet('DCP', '4CH', 'PRE', 'SCMS', 'DATA')][String[]]$Flags
+    [ValidatePattern('^[a-zA-Z0-9]{5}\d{7}$|^$')][String]$ISRC
+    [ValidateLength(0, 80)][string]$Performer
+    [ValidateLength(0, 80)][string]$Title
+    [ValidateLength(0, 80)][string]$Songwriter
     [CueTime]$PreGap
     [CueIndex[]]$Indexes
     [CueTime]$PostGap
@@ -131,7 +131,7 @@ class CueTrack {
 class CueFile {
     #region Definition
     [String]$FileName
-    [ValidateSet('BINARY','MOTOROLA','AIFF','WAVE','MP3')][String]$FileType
+    [ValidateSet('BINARY', 'MOTOROLA', 'AIFF', 'WAVE', 'MP3')][String]$FileType
     [CueTrack[]]$Tracks
     #endregion Definition
     #region Constructors
@@ -146,11 +146,11 @@ class CueFile {
 }
 class CueSheet {
     #region Definition
-    [ValidatePattern('^\d{13}$')][String]$Catalog
+    [ValidatePattern('^\d{13}$|^$')][String]$Catalog
     [String]$CDTextFile
-    [ValidateLength(1,80)][string]$Performer
-    [ValidateLength(1,80)][string]$Title
-    [ValidateLength(1,80)][string]$Songwriter
+    [ValidateLength(0, 80)][string]$Performer
+    [ValidateLength(0, 80)][string]$Title
+    [ValidateLength(0, 80)][string]$Songwriter
     [CueFile[]]$Files
     #endregion Definition
     #region Constructors
@@ -569,6 +569,77 @@ function Merge-File {
 }
 #endregion Merging/splitting files
 #region Cue sheets
+function ConvertFrom-CueOld {
+    <#
+    .SYNOPSIS
+    Converts a Cue sheet formatted string to a collection of CueFile objects.
+    .LINK
+    ConvertTo-Cue
+    .EXAMPLE
+    Get-Content "Twisted Metal 4 (USA).cue" -raw | ConvertFrom-Cue
+    Output:
+    FileName                             FileType Tracks
+    --------                             -------- ------
+    Twisted Metal 4 (USA) (Track 01).bin BINARY   {1 MODE2/2352}
+    Twisted Metal 4 (USA) (Track 02).bin BINARY   {2 AUDIO}
+    Twisted Metal 4 (USA) (Track 03).bin BINARY   {3 AUDIO}
+    Twisted Metal 4 (USA) (Track 04).bin BINARY   {4 AUDIO}
+    Twisted Metal 4 (USA) (Track 05).bin BINARY   {5 AUDIO}
+    Twisted Metal 4 (USA) (Track 06).bin BINARY   {6 AUDIO}
+    Twisted Metal 4 (USA) (Track 07).bin BINARY   {7 AUDIO}
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]   [string] $InputObject 
+    )
+    Process {
+        $cue = $InputObject -split '\r\n|\r|\n'
+        [CueSheet]@{
+            Files = . {
+                for ($i = 0; $i -lt $cue.count; $i++) {
+                    if ($cue[$i] -match '^\s*File\s+') {
+                        if ($cue[$i] -match '".+"') {
+                            $info = ($cue[$i] -split '^\s*File\s+"')[1] -split '"\s+'
+                        }
+                        else {
+                            $info = ($cue[$i] -split '^\s*File\s+')[1] -split '\s+'
+                        }
+                        [CueFile]@{
+                            FileName = $info[0].Trim()
+                            FileType = $info[1].Trim()
+
+                            Tracks   = . {
+                                for (($j = $i + 1); $j -lt $cue.count; $j++) {               
+                                    if ($cue[$j] -match '^\s*File\s+') { break }
+                                    elseif ($cue[$j] -match '^\s*Track\s+') {
+                                        $info = ($cue[$j] -split '^\s*Track\s+')[1] -split '\s+'
+                                        [CueTrack]@{
+                                            Number   = $info[0]
+                                            DataType = $info[1].Trim()
+
+                                            Indexes  = . {
+                                                for ($k = $j + 1; $k -lt $cue.count; ($k++)) {
+                                                    if ($cue[$k] -match '^\s*Track\s+') { break }
+                                                    elseif ($cue[$k] -match '^\s*Index\s+') {
+                                                        $info = ($cue[$k] -split '^\s*Index\s+')[1] -split '\s+'
+                                                        [CueIndex]@{
+                                                            Number = $info[0]
+                                                            Offset = $info[1]
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 function ConvertFrom-Cue {
     <#
     .SYNOPSIS
@@ -593,49 +664,73 @@ function ConvertFrom-Cue {
         [Parameter(Mandatory, ValueFromPipeline)]   [string] $InputObject 
     )
     Process {
-        $cue = $InputObject -split '\n'
-        for ($i = 0; $i -lt $cue.count; $i++) {
-            if ($cue[$i] -match '^\s*File\s+') {
-                if ($cue[$i] -match '".+"') {
-                    $info = ($cue[$i] -split '^\s*File\s+"')[1] -split '"\s+'
-                }
-                else {
-                    $info = ($cue[$i] -split '^\s*File\s+')[1] -split '\s+'
-                }
-                [CueFile]@{
-                    FileName   = $info[0].Trim()
-                    FileType   = $info[1].Trim()
-
-                    Tracks = . {
-                        for (($j = $i + 1); $j -lt $cue.count; $j++) {               
-                            if ($cue[$j] -match '^\s*File\s+') { break }
-                            elseif ($cue[$j] -match '^\s*Track\s+') {
-                                $info = ($cue[$j] -split '^\s*Track\s+')[1] -split '\s+'
-                                [CueTrack]@{
-                                    Number   = $info[0]
-                                    DataType = $info[1].Trim()
-
-                                    Indexes  = . {
-                                        for ($k = $j + 1; $k -lt $cue.count; ($k++)) {
-                                            if ($cue[$k] -match '^\s*Track\s+') { break }
-                                            elseif ($cue[$k] -match '^\s*Index\s+') {
-                                                $info = ($cue[$k] -split '^\s*Index\s+')[1] -split '\s+'
-                                                [CueIndex]@{
-                                                    Number = $info[0]
-                                                    Offset = $info[1]
-                                                }
+        $cueSheet = [CueSheet]::new()
+        $trackNo = 0
+        $fileNo = 0
+        $cueTxt = $InputObject -split '\r\n|\r|\n'
+        Set-Variable i -Option AllScope
+        for ($i = 0; $i -lt $cueTxt.count; $i++) {
+            $line = $cueTxt[$i].trim() -split '\s+(?=(?:[^"]|"[^"]+")+$)' -replace '"', ''
+            switch ($line[0]) {
+                'Catalog' { $cueSheet.Catalog = $line[1]; continue }
+                'CDTextFile' { $cueSheet.CDTextFile = $line[1]; continue }
+                'Performer' { $cueSheet.Performer = $line[1]; continue }
+                'Title' { $cueSheet.Title = $line[1]; continue }
+                'Songwriter' { $cueSheet.Songwriter = $line[1]; continue }
+                'File' {
+                    $cueSheet.Files += [CueFile]@{
+                        FileName = $line[1]
+                        FileType = $line[2]
+                    }
+                    :TrackLoop for ($i++; $i -lt $cueTxt.count; $i++) {
+                        $line = $cueTxt[$i].trim() -split '\s+(?=(?:[^"]|"[^"]+")+$)'
+                        switch ($line[0]) {
+                            'Track' { 
+                                $cueSheet.Files[$FileNo].Tracks += [CueTrack]@{
+                                    Number   = $line[1]
+                                    DataType = $line[2]
+                                }
+                                :IndexLoop for ($i++; $i -lt $cueTxt.count; $i++) {
+                                    $line = $cueTxt[$i].trim() -split '\s+(?=(?:[^"]|"[^"]+")+$)'
+                                    switch ($line[0]) {
+                                        'Index' {
+                                            $cueSheet.Files[$FileNo].Tracks[$TrackNo].Indexes += [CueIndex]@{
+                                                Number = $line[1]
+                                                Offset = [CueTime]$line[2]
                                             }
                                         }
+                                        'Flags' { $cueSheet.Files[$FileNo].Tracks[$TrackNo].Flags = $line[1..($line.count - 1)]; continue }
+                                        'ISRC' { $cueSheet.Files[$FileNo].Tracks[$TrackNo].ISRC = $line[1]; continue }                                        
+                                        'PreGap' { $cueSheet.Files[$FileNo].Tracks[$TrackNo].PreGap = $line[1]; continue }
+                                        'Postgap' { $cueSheet.Files[$FileNo].Tracks[$TrackNo].PostGap = $line[1]; continue }
+                                        'Performer' { $cueSheet.Files[$FileNo].Tracks[$TrackNo].Performer = $line[1]; continue }
+                                        'Title' { $cueSheet.Files[$FileNo].Tracks[$TrackNo].Title = $line[1]; continue }
+                                        'Songwriter' { $cueSheet.Files[$FileNo].Tracks[$TrackNo].Songwriter = $line[1]; continue }
+                                        'Track' { $i--; break IndexLoop }
+                                        'File' { $i--; break TrackLoop }
+                                        'Rem' { continue }
+                                        '' { continue }
+                                        Default { Write-Warning ("Line $($i): Invalid token in INDEX: $_") } 
                                     }
                                 }
+                                $trackNo++; continue
                             }
+                            'File' { $i--; break TrackLoop }
+                            'Rem' { continue }
+                            '' { continue }
+                            Default { Write-Warning ("Line $($i): Invalid token in FILE: $_") }
                         }
-                    }
-                }
+                    } 
+                    $fileNo++; continue
+                }         
+                'Rem' { continue }
+                '' { continue }
+                Default { Write-Warning ("Line $($i): Invalid token in ROOT: $_") }        
             }
         }
+        $cueSheet 
     }
-}    
+}
 function ConvertTo-Cue {
     <#
     .SYNOPSIS
@@ -678,28 +773,46 @@ function ConvertTo-Cue {
         [Parameter(Mandatory, ValueFromPipeline)]   $InputObject
     )
     Process {
-        foreach ($file in $InputObject) {
-            Write-Output "FILE $file"
+        If ($InputObject.Catalog) { "CATALOG $($InputObject.Catalog)" }
+        If ($InputObject.CDTextFile) { "CDTEXTFILE `"$($InputObject.CDTextFile)`"" }
+        If ($InputObject.Performer) { "PERFORMER `"$($InputObject.Performer)`"" }
+        If ($InputObject.Title) { "TITLE `"$($InputObject.Title)`"" }
+        If ($InputObject.Songwriter) { "SONGWRITER `"$($InputObject.Songwriter)`"" }
+        foreach ($file in $InputObject.Files) {
+            "FILE $file"
             foreach ($track in $file.Tracks) {
-                Write-Output "  TRACK $track"
+                "  TRACK $track"
+                If ($track.ISRC) { "    ISRC $($track.ISRC)" }
+                If ($track.Performer) { "    PERFORMER `"$($track.Performer)`"" }
+                If ($track.Title) { "    TITLE `"$($track.Title)`"" }
+                If ($track.Songwriter) { "    SONGWRITER `"$($track.Songwriter)`"" }
+                If ($track.Flags) { "    FLAGS $($track.Flags -join ' ')" }
+                If ($track.PreGap) { "    PREGAP $($track.PreGap)" }
                 foreach ($index in $track.indexes) {
-                    Write-Output "    INDEX $index"
+                    "    INDEX $index"
                 }
+                If ($track.PostGap) { "    POSTGAP $($track.PostGap)" }
             }
         }
     }
 }
-function New-Cue {
+function New-CueFromFiles {
     [CmdletBinding()]
+    <#
+    .SYNOPSIS
+    Creates a CueSheet object for a collection of raw bin files.
+    #>
     param(
+        
         [Parameter(Mandatory, ValueFromPipeline, Position = 0)][ValidateScript({ Test-Path -Path $_ -PathType Leaf })] [string[]] $SourceFiles
     )
     begin {
         $prevDir = [System.IO.Directory]::GetCurrentDirectory()
         [System.IO.Directory]::SetCurrentDirectory((Get-location))
         $DataPattern = [byte[]]@(0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0)
-        $global:buffer = new-object Byte[] 352800
+        $buffer = new-object Byte[] 352800
         $trackNo = 1
+        $cueSheet = [CueSheet]::new()
     }
     Process {
         foreach ($path in $SourceFiles) {
@@ -714,7 +827,7 @@ function New-Cue {
             if (Compare-object $buffer[0..11] $DataPattern) {
                 $DataType = 'AUDIO'
                 $silence = $buffer | & { Process {
-                        if ($_ -ne [Byte]0) { $false; break }
+                        if ($_ -ne [Byte]0) { $false; break }   # oddly enough, this seems the fastest way
                     } end { $true } }
                 if ($bytesRead -ne 352800 -or !$silence ) {
                     Write-Warning "Audio Track $trackNo in `"$path`" has no 2 seconds of silence at the beginning."
@@ -724,11 +837,11 @@ function New-Cue {
                 $DataType = 'MODE2/2352'
                 $silence = $false
             }
-            [CueFile]@{
-                FileName   = $inFile.Name
-                FileType   = 'BINARY'
+            $CueSheet.Files += [CueFile]@{
+                FileName = $inFile.Name
+                FileType = 'BINARY'
 
-                Tracks = [CueTrack]@{
+                Tracks   = [CueTrack]@{
                     Number   = $trackNo
                     DataType = $DataType
                     Indexes  = . {
@@ -769,13 +882,21 @@ function Split-CueBin {
     )
     $cue = Get-Content -LiteralPath $fileIn -raw | ConvertFrom-Cue
     if (!$cue) { Write-Error "`"$fileIn`" isn't a valid cue file!"; return }
-    $allBinary = $cue.Type | & { Process {
-            if ($_ -ne 'BINARY' -and $_ -ne 'MOTOROLA') { $false; break }
+    $allBinary = $cue.FileType | & { Process {
+            if ($_ -ne 'BINARY' -and $_ -ne 'MOTOROLA') { $false; return }
         } end { $true } }
     if (!$allBinary) { Write-Error "`"$fileIn`" Includes files that are not flagged as raw binary. Wrong or corrupt cue sheet?"; return }
-    $newCue = ForEach ($File in $cue) {
-        $fileInfo = Get-Item $file.FileName
-        if (!$fileInfo) { Write-Error "Could not find `"$file`". Wrong cue sheet or renamed/moved files?"; return }
+    $newcue = [CueSheet]@{
+        Catalog    = $cue.Catalog
+        CDTextFile = $cue.CDTextFile
+        Performer  = $cue.Performer
+        Title      = $cue.Title
+        Songwriter = $cue.Songwriter
+    }
+
+    ForEach ($File in $cue.Files) {
+        $fileInfo = Get-Item (Join-Path (split-path $FileIn) $file.FileName)
+        if (!$fileInfo) { Write-Error "Could not find `"$(Join-Path (split-path $FileIn) $file.FileName)`". Wrong cue sheet or renamed/moved files?"; return }
 
         For ($i = 0; $i -lt $File.Tracks.count; $i++) { 
             $curPos = $File.Tracks[$i].Indexes[0].Offset.TotalBytes
@@ -789,13 +910,20 @@ function Split-CueBin {
             $size = $nextPos - $curPos
             try { Split-File $fileInfo $newName -Start $curPos -size $size -ErrorAction Stop }
             catch { Write-Error $_; return }
-            [CueFile]@{
-                FileName   = [System.IO.Path]::GetFileName($newName)
-                FileType   = $File.FileType
-                Tracks = [CueTrack]@{
-                    Number   = $File.Tracks[$i].Number
-                    DataType = $File.Tracks[$i].DataType
-                    Indexes  = & { ForEach ($index in $File.Tracks[$i].Indexes) { 
+            $newCue.Files += [CueFile]@{
+                FileName = [System.IO.Path]::GetFileName($newName)
+                FileType = $File.FileType
+                Tracks   = [CueTrack]@{
+                    Number     = $File.Tracks[$i].Number
+                    DataType   = $File.Tracks[$i].DataType
+                    Performer  = $File.Tracks[$i].Performer
+                    Title      = $File.Tracks[$i].Title
+                    Songwriter = $File.Tracks[$i].Songwriter
+                    ISRC       = $File.Tracks[$i].ISRC
+                    PreGap     = $File.Tracks[$i].PreGap
+                    PostGap    = $File.Tracks[$i].PostGap
+
+                    Indexes    = & { ForEach ($index in $File.Tracks[$i].Indexes) { 
                             [CueIndex]@{
                                 Number = $Index.Number
                                 Offset = $index.Offset - [CueTime]::FromBytes($curPos)
@@ -803,7 +931,7 @@ function Split-CueBin {
                         } }
                 }
             }
-        }          
+        }
     }
     ConvertTo-Cue $newcue | Out-File ([System.IO.Path]::Combine($destination, [System.IO.Path]::GetFileName($fileIn)))
 }
@@ -823,29 +951,42 @@ function Merge-CueBin {
         } end { $true } }
     if (!$allBinary) { Write-Error "`"$fileIn`" Can't merge images that includes non-binary files."; return }
     $newName = [System.IO.Path]::Combine($destination, ([System.IO.Path]::GetFileNameWithoutExtension($Fileout) + '.bin'))
-    $newCue = [CueFile]@{
-        FileName   = [System.IO.Path]::GetFileName($newName)
-        FileType   = $Cue.File[0].FileType
-        Tracks = & {
-            ForEach ($File in $cue) {
-                $prevFile += $fileInfo.Length
-                $fileInfo = Get-Item $file.FileName
-                if (!$fileInfo) { Write-Error "Could not find `"$file`". Wrong cue sheet or renamed/moved files?"; return }
+    $newCue = [CueSheet]@{
+        Catalog    = $cue.Catalog
+        CDTextFile = $cue.CDTextFile
+        Performer  = $cue.Performer
+        Title      = $cue.Title
+        Songwriter = $cue.Songwriter
+        Files      = [CueFile]@{
+            FileName = [System.IO.Path]::GetFileName($newName)
+            FileType = $Cue.File[0].FileType
+            Tracks   = & {
+                ForEach ($File in $cue) {
+                    $prevFile += $fileInfo.Length
+                    $fileInfo = Get-Item $file.FileName
+                    if (!$fileInfo) { Write-Error "Could not find `"$file`". Wrong cue sheet or renamed/moved files?"; return }
 
-                ForEach ($track in $File.Tracks) {
-                    [CueTrack]@{
-                        Number   = $track.Number
-                        DataType = $track.DataType
-                        Indexes  = & { ForEach ($index in $track.Indexes) { 
-                                [CueIndex]@{
-                                    Number = $Index.Number
-                                    Offset = $index.Offset + [CueTime]::FromBytes($prevFile)
-                                }
-                            } }
+                    ForEach ($track in $File.Tracks) {
+                        [CueTrack]@{
+                            Number     = $track.Number
+                            DataType   = $track.DataType
+                            Performer  = $File.Tracks[$i].Performer
+                            Title      = $File.Tracks[$i].Title
+                            Songwriter = $File.Tracks[$i].Songwriter
+                            ISRC       = $File.Tracks[$i].ISRC
+                            PreGap     = $File.Tracks[$i].PreGap
+                            PostGap    = $File.Tracks[$i].PostGap
+                            Indexes    = & { ForEach ($index in $track.Indexes) { 
+                                    [CueIndex]@{
+                                        Number = $Index.Number
+                                        Offset = $index.Offset + [CueTime]::FromBytes($prevFile)
+                                    }
+                                } }
+                        }
                     }
                 }
             }
-        }          
+        }
     }
     try { Merge-File $cue.FileName $newName -ErrorAction Stop }
     catch { Write-Error $_; return }
