@@ -568,6 +568,7 @@ function Merge-File {
     }
 }
 #endregion Merging/splitting files
+
 #region Cue sheets
 function ConvertFrom-CueOld {
     <#
@@ -830,11 +831,21 @@ function New-CueFromFiles {
                         if ($_ -ne [Byte]0) { $false; break }   # oddly enough, this seems the fastest way
                     } end { $true } }
                 if ($bytesRead -ne 352800 -or !$silence ) {
-                    Write-Warning "Audio Track $trackNo in `"$path`" has no 2 seconds of silence at the beginning."
+                    Write-Warning "Audio Track $trackNo in `"$path`" has no 2 seconds of silence at the beginning. No raw copy?"
                 }
             }
             else {
-                $DataType = 'MODE2/2352'
+                if ($buffer[15] -eq 1) {
+                    $DataType = 'MODE1/2352'
+                }
+                elseif ($buffer[15] -eq 2) {
+                    $DataType = 'MODE2/2352'
+                }
+                else {
+                    Write-Error "Can't detect Mode of Data Track $trackNo in `"$path`". No raw copy?"
+                    return
+                }
+                
                 $silence = $false
             }
             $CueSheet.Files += [CueFile]@{
@@ -867,10 +878,12 @@ function New-CueFromFiles {
         }
     }
     end {
+        $CueSheet
         [System.IO.Directory]::SetCurrentDirectory($prevDir)
     }
 }
 #endregion Cue sheets
+
 #region Bin/Cue Tools
 function Split-CueBin {
     [CmdletBinding()]
