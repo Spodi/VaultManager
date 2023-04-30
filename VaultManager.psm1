@@ -152,6 +152,7 @@ class CueSheet {
     [ValidateLength(0, 80)][string]$Title
     [ValidateLength(0, 80)][string]$Songwriter
     [CueFile[]]$Files
+    [bool]$IsDreamcast
     #endregion Definition
     #region Constructors
 
@@ -811,6 +812,7 @@ function New-CueFromFiles {
         $prevDir = [System.IO.Directory]::GetCurrentDirectory()
         [System.IO.Directory]::SetCurrentDirectory((Get-location))
         $DataPattern = [byte[]]@(0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0)
+        $DreamcastPattern= [byte[]]@(83, 69, 71, 65, 32, 83, 69, 71, 65, 75, 65, 84, 65, 78, 65, 32, 83, 69, 71, 65, 32, 69, 78, 84, 69, 82, 80, 82, 73, 83, 69) #SEGA SEGAKATANA SEGA ENTERPRISE
         $buffer = new-object Byte[] 352800
         $trackNo = 1
         $cueSheet = [CueSheet]::new()
@@ -828,8 +830,8 @@ function New-CueFromFiles {
             if (Compare-object $buffer[0..11] $DataPattern) {
                 $DataType = 'AUDIO'
                 $silence = $buffer | & { Process {
-                        if ($_ -ne [Byte]0) { $false; break }   # oddly enough, this seems the fastest way
-                    } end { $true } }
+                        if ($_ -ne [Byte]0) { $false }
+                    } end { $true } } | Select-Object -First 1
                 if ($bytesRead -ne 352800 -or !$silence ) {
                     Write-Warning "Audio Track $trackNo in `"$path`" has no 2 seconds of silence at the beginning. No raw copy?"
                 }
@@ -845,7 +847,9 @@ function New-CueFromFiles {
                     Write-Error "Can't detect Mode of Data Track $trackNo in `"$path`". No raw copy?"
                     return
                 }
-                
+                if (!(Compare-object $buffer[16..46] $DreamcastPattern)) {
+                    $CueSheet.IsDreamcast = $true
+                }
                 $silence = $false
             }
             $CueSheet.Files += [CueFile]@{
@@ -895,9 +899,9 @@ function Split-CueBin {
     )
     $cue = Get-Content -LiteralPath $fileIn -raw | ConvertFrom-Cue
     if (!$cue) { Write-Error "`"$fileIn`" isn't a valid cue file!"; return }
-    $allBinary = $cue.FileType | & { Process {
-            if ($_ -ne 'BINARY' -and $_ -ne 'MOTOROLA') { $false; return }
-        } end { $true } }
+    $allBinary = $cue.Files.FileType | & { Process {
+        if ($_ -ne 'BINARY' -and $_ -ne 'MOTOROLA') { $false } 
+    } end { $true } } | Select-Object -First 1
     if (!$allBinary) { Write-Error "`"$fileIn`" Includes files that are not flagged as raw binary. Wrong or corrupt cue sheet?"; return }
     $newcue = [CueSheet]@{
         Catalog    = $cue.Catalog
@@ -922,7 +926,7 @@ function Split-CueBin {
             $newName = [System.IO.Path]::Combine($destination, ($fileInfo.BaseName + " (Track $('{0:d2}' -f $File.Tracks[$i].Number))" + $fileInfo.Extension))
             $size = $nextPos - $curPos
             try { Split-File $fileInfo $newName -Start $curPos -size $size -ErrorAction Stop }
-            catch { Write-Error $_; return }
+            catch { Write-Host 'Error in Split-File:'; Write-Error $_; return }
             $newCue.Files += [CueFile]@{
                 FileName = [System.IO.Path]::GetFileName($newName)
                 FileType = $File.FileType
@@ -957,11 +961,13 @@ function Merge-CueBin {
         [Parameter(Mandatory, Position = 1)] [string]$fileOut
     )
     $destination = [System.IO.Path]::GetDirectoryName($fileOut)
+    if (!$destination)
+    {$destination = ".\"}
     $cue = Get-Content -LiteralPath $fileIn -raw | ConvertFrom-Cue
     if (!$cue) { Write-Error "`"$fileIn`" isn't a valid cue file!"; return }
-    $allBinary = $cue.FileType | & { Process {
-            if ($_ -ne 'BINARY' -and $_ -ne 'MOTOROLA') { $false; break }
-        } end { $true } }
+    $allBinary = $cue.Files.FileType | & { Process {
+        if ($_ -ne 'BINARY' -and $_ -ne 'MOTOROLA') { $false } 
+    } end { $true } } | Select-Object -First 1
     if (!$allBinary) { Write-Error "`"$fileIn`" Can't merge images that includes non-binary files."; return }
     $newName = [System.IO.Path]::Combine($destination, ([System.IO.Path]::GetFileNameWithoutExtension($Fileout) + '.bin'))
     $newCue = [CueSheet]@{
@@ -972,9 +978,9 @@ function Merge-CueBin {
         Songwriter = $cue.Songwriter
         Files      = [CueFile]@{
             FileName = [System.IO.Path]::GetFileName($newName)
-            FileType = $Cue.File[0].FileType
+            FileType = $Cue.Files[0].FileType
             Tracks   = & {
-                ForEach ($File in $cue) {
+                ForEach ($File in $cue.Files) {
                     $prevFile += $fileInfo.Length
                     $fileInfo = Get-Item $file.FileName
                     if (!$fileInfo) { Write-Error "Could not find `"$file`". Wrong cue sheet or renamed/moved files?"; return }
@@ -983,12 +989,12 @@ function Merge-CueBin {
                         [CueTrack]@{
                             Number     = $track.Number
                             DataType   = $track.DataType
-                            Performer  = $File.Tracks[$i].Performer
-                            Title      = $File.Tracks[$i].Title
-                            Songwriter = $File.Tracks[$i].Songwriter
-                            ISRC       = $File.Tracks[$i].ISRC
-                            PreGap     = $File.Tracks[$i].PreGap
-                            PostGap    = $File.Tracks[$i].PostGap
+                            Performer  = $track.Performer
+                            Title      = $track.Title
+                            Songwriter = $track.Songwriter
+                            ISRC       = $track.ISRC
+                            PreGap     = $track.PreGap
+                            PostGap    = $track.PostGap
                             Indexes    = & { ForEach ($index in $track.Indexes) { 
                                     [CueIndex]@{
                                         Number = $Index.Number
@@ -1001,8 +1007,8 @@ function Merge-CueBin {
             }
         }
     }
-    try { Merge-File $cue.FileName $newName -ErrorAction Stop }
-    catch { Write-Error $_; return }
+    try { Merge-File $cue.Files.FileName $newName -ErrorAction Stop }
+    catch { Write-Host 'Error in Merge-File:'; Write-Error $_; return }
     ConvertTo-Cue $newcue | Out-File ([System.IO.Path]::Combine($destination, [System.IO.Path]::GetFileName($fileOut)))
 }
 #endregion Bin/Cue Tools
