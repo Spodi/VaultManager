@@ -799,11 +799,11 @@ function ConvertTo-Cue {
     }
 }
 function New-CueFromFiles {
-    [CmdletBinding()]
     <#
     .SYNOPSIS
     Creates a CueSheet object for a collection of raw bin files.
     #>
+    [CmdletBinding()]
     param(
         # Array of file path to .bin files included in the .cue. e.g @(.\Track1.bin, .\Track2.bin) ...
         [Parameter(Mandatory, ValueFromPipeline, Position = 0)][ValidateScript({ Test-Path -Path $_ -PathType Leaf })] [string[]] $SourceFiles
@@ -890,6 +890,10 @@ function New-CueFromFiles {
 
 #region Bin/Cue Tools
 function Split-CueBin {
+    <#
+    .SYNOPSIS
+    Splits a raw .bin file according to the provided .cue.
+    #>
     [CmdletBinding()]
     param(
         # Splits the first file specified in this cue sheet according to the tracks.
@@ -953,6 +957,10 @@ function Split-CueBin {
     ConvertTo-Cue $newcue | Out-File ([System.IO.Path]::Combine($destination, [System.IO.Path]::GetFileName($fileIn)))
 }
 function Merge-CueBin {
+    <#
+    .SYNOPSIS
+    Merges multiple raw .bin file according to the provided .cue.
+    #>
     [CmdletBinding()]
     param(
         # Merges the file specified in this cue sheet.
