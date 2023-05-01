@@ -805,14 +805,14 @@ function New-CueFromFiles {
     Creates a CueSheet object for a collection of raw bin files.
     #>
     param(
-        
+        # Array of file path to .bin files included in the .cue. e.g @(.\Track1.bin, .\Track2.bin) ...
         [Parameter(Mandatory, ValueFromPipeline, Position = 0)][ValidateScript({ Test-Path -Path $_ -PathType Leaf })] [string[]] $SourceFiles
     )
     begin {
         $prevDir = [System.IO.Directory]::GetCurrentDirectory()
         [System.IO.Directory]::SetCurrentDirectory((Get-location))
         $DataPattern = [byte[]]@(0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0)
-        $DreamcastPattern= [byte[]]@(83, 69, 71, 65, 32, 83, 69, 71, 65, 75, 65, 84, 65, 78, 65, 32, 83, 69, 71, 65, 32, 69, 78, 84, 69, 82, 80, 82, 73, 83, 69) #SEGA SEGAKATANA SEGA ENTERPRISE
+        $DreamcastPattern = [byte[]]@(83, 69, 71, 65, 32, 83, 69, 71, 65, 75, 65, 84, 65, 78, 65, 32, 83, 69, 71, 65, 32, 69, 78, 84, 69, 82, 80, 82, 73, 83, 69) #SEGA SEGAKATANA SEGA ENTERPRISE
         $buffer = new-object Byte[] 352800
         $trackNo = 1
         $cueSheet = [CueSheet]::new()
@@ -900,8 +900,8 @@ function Split-CueBin {
     $cue = Get-Content -LiteralPath $fileIn -raw | ConvertFrom-Cue
     if (!$cue) { Write-Error "`"$fileIn`" isn't a valid cue file!"; return }
     $allBinary = $cue.Files.FileType | & { Process {
-        if ($_ -ne 'BINARY' -and $_ -ne 'MOTOROLA') { $false } 
-    } end { $true } } | Select-Object -First 1
+            if ($_ -ne 'BINARY' -and $_ -ne 'MOTOROLA') { $false } 
+        } end { $true } } | Select-Object -First 1
     if (!$allBinary) { Write-Error "`"$fileIn`" Includes files that are not flagged as raw binary. Wrong or corrupt cue sheet?"; return }
     $newcue = [CueSheet]@{
         Catalog    = $cue.Catalog
@@ -962,12 +962,12 @@ function Merge-CueBin {
     )
     $destination = [System.IO.Path]::GetDirectoryName($fileOut)
     if (!$destination)
-    {$destination = ".\"}
+    { $destination = ".\" }
     $cue = Get-Content -LiteralPath $fileIn -raw | ConvertFrom-Cue
     if (!$cue) { Write-Error "`"$fileIn`" isn't a valid cue file!"; return }
     $allBinary = $cue.Files.FileType | & { Process {
-        if ($_ -ne 'BINARY' -and $_ -ne 'MOTOROLA') { $false } 
-    } end { $true } } | Select-Object -First 1
+            if ($_ -ne 'BINARY' -and $_ -ne 'MOTOROLA') { $false } 
+        } end { $true } } | Select-Object -First 1
     if (!$allBinary) { Write-Error "`"$fileIn`" Can't merge images that includes non-binary files."; return }
     $newName = [System.IO.Path]::Combine($destination, ([System.IO.Path]::GetFileNameWithoutExtension($Fileout) + '.bin'))
     $newCue = [CueSheet]@{
