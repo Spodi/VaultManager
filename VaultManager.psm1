@@ -40,6 +40,9 @@ class CueTime : IComparable {
     CueTime([uint64]$TotalFrames) {
         $this.TotalFrames = $TotalFrames
     }
+    CueTime([double]$TotalFrames) {
+        $this.TotalFrames = $TotalFrames
+    }
 
     CueTime([timeSpan]$Time) {
         Write-Warning 'Converting from [TimeSpan] will return inaccurate Frame values!'
@@ -73,6 +76,12 @@ class CueTime : IComparable {
     }
     static [CueTime]op_Subtraction([CueTime]$a, [CueTime]$b) {
         return $a.TotalFrames - $b.TotalFrames
+    }
+    static [CueTime]op_Division([CueTime]$a, [double]$b) {
+        return $a.TotalFrames / $b
+    }
+    static [CueTime]op_Multiply([CueTime]$a, [double]$b) {
+        return $a.TotalFrames * $b
     }
     [bool]Equals([object]$other) {
         return $this.TotalFrames -eq $other.TotalFrames
@@ -478,6 +487,9 @@ function Split-File {
     Makes a new file out of another by copying only a specific area.
     .LINK
     Merge-File
+    Split-CueBin
+    .NOTES
+    If you want to split up a binary CD-Image use Split-CueBin, as that will calculate the splits from a cue sheet and also generate a new cue sheet.
     #>
     [CmdletBinding()]
     param(
@@ -533,7 +545,10 @@ function Merge-File {
     .SYNOPSIS
     Merge multiple files to on file by appending the raw data to the previous file.
     .LINK
-    Split-Files
+    Split-File
+    Merge-CueBin
+    .NOTES
+    If you want to merge a binary CD-Image use Merge-CueBin, as that will calculate the splits from a cue sheet and also generate a new cue sheet.
     #>
     [CmdletBinding()]
     param(
@@ -888,15 +903,17 @@ function New-CueFromFiles {
 }
 #endregion Cue sheets
 
-#region Bin/Cue Tools
+#region Cue/Bin Tools
 function Split-CueBin {
     <#
     .SYNOPSIS
     Splits a raw .bin file according to the provided .cue.
+    .LINK
+    Merge-CueBin
     #>
     [CmdletBinding()]
     param(
-        # Splits the first file specified in this cue sheet according to the tracks.
+        # Splits the files specified in this cue sheet according to the tracks.
         [ValidateScript({ Test-Path -Path $_ -PathType Leaf })][Parameter(Mandatory, Position = 0)] [string]$fileIn,
         # Folder where to put in the new cuesheet and split files. Won't overwrite existing files.
         [Parameter(Mandatory, Position = 1)] [string]$destination
@@ -960,6 +977,8 @@ function Merge-CueBin {
     <#
     .SYNOPSIS
     Merges multiple raw .bin file according to the provided .cue.
+    .LINK
+    Split-CueBin
     #>
     [CmdletBinding()]
     param(
@@ -1019,5 +1038,5 @@ function Merge-CueBin {
     catch { Write-Host 'Error in Merge-File:'; Write-Error $_; return }
     ConvertTo-Cue $newcue | Out-File ([System.IO.Path]::Combine($destination, [System.IO.Path]::GetFileName($fileOut)))
 }
-#endregion Bin/Cue Tools
+#endregion Cue/Bin Tools
 #endregion Functions
