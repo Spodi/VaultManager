@@ -5,7 +5,6 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:local="clr-namespace:VaultManager"
     mc:Ignorable="d"
- 
     Title="Vault Manager"
     Background="#FF141414" Foreground="White" SizeToContent="WidthAndHeight">
     <Window.Resources>
@@ -78,8 +77,8 @@
             <TabItem Background="{DynamicResource TabItemBackground1}" Header="Cue / Bin Tools" Foreground="DarkGray">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="32*" />
-                        <RowDefinition Height="27*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <RadioButton x:Name="RadioSplit" Content="Split" Margin="95,25,0,0" Foreground="White" Height="20" GroupName="Merge" HorizontalAlignment="Left" VerticalAlignment="Top" VerticalContentAlignment="Center" IsChecked="True" />
                     <RadioButton x:Name="RadioMerge" Content="Merge" Margin="10,25,0,0" Foreground="White" Height="20" GroupName="Merge" HorizontalAlignment="Left" VerticalAlignment="Top" VerticalContentAlignment="Center" IsChecked="True" />
@@ -113,10 +112,10 @@
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1*" />
-                        <ColumnDefinition Width="1*" />
+                        <ColumnDefinition x:Name="OtherStackL" Width="1*" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Height="200"></StackPanel>
-                    <StackPanel Height="200" Grid.Column="1"></StackPanel>
+                    <StackPanel x:Name="OtherStackR" Height="200" Grid.Column="1"></StackPanel>
                 </Grid>
             </TabItem>
         </TabControl>
