@@ -4,11 +4,13 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:local="clr-namespace:VaultManager"
+    xmlns:Converter="clr-namespace:MyConverter;assembly="
     mc:Ignorable="d"
     Title="Vault Manager"
-    Background="#FF141414" Foreground="White" SizeToContent="WidthAndHeight">
+    Background="#FF141414" Foreground="White" MinWidth="346" Width="508" MinHeight="40" Height="290" WindowStartupLocation="CenterScreen" SizeToContent="Height" x:Name="Window">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <Converter:SizeConverter x:Key="SizeConverter" />
         <LinearGradientBrush x:Key="HeaderLabelBackground" EndPoint="0.5,1" StartPoint="0.5,0">
             <GradientStop Color="#00000000" />
             <GradientStop Color="#00000000" Offset="1" />
@@ -27,98 +29,100 @@
         </Grid.Background>
         <TabControl x:Name="Tabs" Background="#CC141414" Foreground="White">
             <TabItem Header="Un- / Folderize" Margin="-2,-2,-2,0" Foreground="DarkGray" Background="{DynamicResource TabItemBackground1}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
-                    <RadioButton x:Name="RadioFolderize" Content="Folderize" HorizontalAlignment="Left" Margin="10,25,0,0" VerticalAlignment="Top" Foreground="White" GroupName="Folderize" IsChecked="True" Height="20" VerticalContentAlignment="Center"
-                        Width="80" />
-                    <RadioButton x:Name="RadioUnfolderize" Content="Unfolderize" HorizontalAlignment="Left" Margin="95,25,10,0" VerticalAlignment="Top" Foreground="White" GroupName="Folderize" Height="20" VerticalContentAlignment="Center" Width="80" />
-                    <TextBox x:Name="TextBoxFolderizeInput" Margin="60,50,65,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Height="20" MinWidth="200" />
-                    <Button x:Name="ButtonFolderizeInput" Content="Browse..." HorizontalAlignment="Right" Margin="0,50,10,0" VerticalAlignment="Top" Padding="2,1,2,1" HorizontalContentAlignment="Center" Height="20" />
-                    <Label Content="Input:" Margin="10,50,0,0" VerticalAlignment="Top" Padding="2,2,2,2" Height="20" Foreground="White" HorizontalAlignment="Left" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" Width="34" />
-                    <TextBox x:Name="TextBoxFolderizeOutput" Margin="60,75,65,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Height="20" MinWidth="150" />
-                    <Button x:Name="ButtonFolderizeInput1" Content="Browse..." HorizontalAlignment="Right" Margin="0,75,10,0" VerticalAlignment="Top" Padding="2,1,2,1" HorizontalContentAlignment="Center" Height="20" />
-                    <Label Content="Output:" Margin="10,75,0,0" VerticalAlignment="Top" Padding="2,2,2,2" Height="20" Foreground="White" HorizontalAlignment="Left" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" Width="44" />
-                    <Button x:Name="ButtonFolderizeStart" Content="Start Action" HorizontalAlignment="Right" VerticalAlignment="Bottom" Padding="2,1,2,1" Grid.Row="2" Height="20" Margin="5,5,10,10" />
-                    <Expander Header="Advanced" Foreground="White" Grid.Row="1" VerticalAlignment="Top" Margin="0,5,0,5">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="1*" />
-                            </Grid.RowDefinitions>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="1*" />
-                            </Grid.ColumnDefinitions>
-                            <CheckBox x:Name="FolderizeMove" Content="move instead of copy" HorizontalAlignment="Left" Margin="10,5,0,0" Foreground="White" IsChecked="False" Height="20" VerticalContentAlignment="Center" VerticalAlignment="Top"
-                                Grid.Row="0" />
-                            <RadioButton x:Name="RadioFolderizeWhitelist" Content="Whitelist" HorizontalAlignment="Left" Margin="10,20,0,0" Foreground="White" IsChecked="True" GroupName="ExtensionsMode" Width="70" Height="20"
-                                VerticalContentAlignment="Center" VerticalAlignment="Top" Grid.Row="1" />
-                            <RadioButton x:Name="RadioFolderizeBlacklist" Content="Blacklist" HorizontalAlignment="Left" Margin="85,20,0,0" VerticalAlignment="Top" Foreground="White" GroupName="ExtensionsMode" Width="70" Height="20"
-                                VerticalContentAlignment="Center" Grid.Row="1" />
-                            <RadioButton x:Name="RadioFolderizeAll" Content="All" HorizontalAlignment="Left" Margin="160,20,0,0" VerticalAlignment="Top" Foreground="White" GroupName="ExtensionsMode" Width="70" Height="20"
-                                VerticalContentAlignment="Center" Grid.Row="1" />
-                            <Label Content="Extensions:" VerticalAlignment="Top" Padding="0,2,2,2" Foreground="White" VerticalContentAlignment="Center" Grid.Column="1" HorizontalAlignment="Left" Margin="0,0,10,0" Grid.RowSpan="2" />
-                            <ListView x:Name="ListFolderizeExtensions" Margin="0,20,10,0" SelectionMode="Multiple" Grid.Column="1" Grid.RowSpan="2" MaxHeight="140">
-                            </ListView>
-                            <Label Content="Extensions Mode:" VerticalAlignment="Top" Padding="2,2,2,2" Height="20" Foreground="White" VerticalContentAlignment="Center" Margin="10,0,0,0" Grid.RowSpan="2" Grid.Row="1" />
-                            <CheckBox x:Name="FolderizeEmptyFolders" Content="remove empty folders in input" HorizontalAlignment="Left" Foreground="White" IsChecked="False" Height="20" VerticalContentAlignment="Center" VerticalAlignment="Center"
-                                Margin="10,25,0,10" IsEnabled="{Binding IsChecked, ElementName=FolderizeMove}" />
-                        </Grid>
-                    </Expander>
-                    <Label Background="{DynamicResource HeaderLabelBackground}" Content="Folderize" VerticalAlignment="Top" Foreground="White" Margin="-2,0,-2,0" />
+                        <RadioButton x:Name="RadioFolderize" Content="Folderize" HorizontalAlignment="Left" Margin="10,25,0,0" VerticalAlignment="Top" Foreground="White" GroupName="Folderize" IsChecked="True" Height="20"
+                            VerticalContentAlignment="Center"
+                            Width="80" />
+                        <RadioButton x:Name="RadioUnfolderize" Content="Unfolderize" HorizontalAlignment="Left" Margin="95,25,10,0" VerticalAlignment="Top" Foreground="White" GroupName="Folderize" Height="20" VerticalContentAlignment="Center"
+                            Width="80" />
+                        <TextBox x:Name="TextBoxFolderizeInput" Margin="60,50,65,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Height="20" MinWidth="200" />
+                        <Button x:Name="ButtonFolderizeInput" Content="Browse..." HorizontalAlignment="Right" Margin="0,50,10,0" VerticalAlignment="Top" Padding="2,1,2,1" HorizontalContentAlignment="Center" Height="20" />
+                        <Label Content="Input:" Margin="10,50,0,0" VerticalAlignment="Top" Padding="2,2,2,2" Height="20" Foreground="White" HorizontalAlignment="Left" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" Width="34" />
+                        <TextBox x:Name="TextBoxFolderizeOutput" Margin="60,75,65,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Height="20" MinWidth="150" />
+                        <Button x:Name="ButtonFolderizeInput1" Content="Browse..." HorizontalAlignment="Right" Margin="0,75,10,0" VerticalAlignment="Top" Padding="2,1,2,1" HorizontalContentAlignment="Center" Height="20" />
+                        <Label Content="Output:" Margin="10,75,0,0" VerticalAlignment="Top" Padding="2,2,2,2" Height="20" Foreground="White" HorizontalAlignment="Left" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" Width="44" />
+                        <Button x:Name="ButtonFolderizeStart" Content="Start Action" HorizontalAlignment="Right" VerticalAlignment="Bottom" Padding="2,1,2,1" Grid.Row="2" Height="20" Margin="5,5,10,10" />
+                        <Expander Header="Advanced" Foreground="White" Grid.Row="1" Margin="0,5,0,5">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="1*" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="1*" />
+                                </Grid.ColumnDefinitions>
+                                <CheckBox x:Name="FolderizeMove" Content="move instead of copy" HorizontalAlignment="Left" Margin="10,5,0,0" Foreground="White" IsChecked="False" Height="20" VerticalContentAlignment="Center" VerticalAlignment="Top"
+                                    Grid.Row="0" />
+                                <RadioButton x:Name="RadioFolderizeWhitelist" Content="Whitelist" HorizontalAlignment="Left" Margin="10,20,0,0" Foreground="White" IsChecked="True" GroupName="ExtensionsMode" Width="70" Height="20"
+                                    VerticalContentAlignment="Center" VerticalAlignment="Top" Grid.Row="1" />
+                                <RadioButton x:Name="RadioFolderizeBlacklist" Content="Blacklist" HorizontalAlignment="Left" Margin="85,20,0,0" VerticalAlignment="Top" Foreground="White" GroupName="ExtensionsMode" Width="70" Height="20"
+                                    VerticalContentAlignment="Center" Grid.Row="1" />
+                                <RadioButton x:Name="RadioFolderizeAll" Content="All" HorizontalAlignment="Left" Margin="160,20,0,0" VerticalAlignment="Top" Foreground="White" GroupName="ExtensionsMode" Width="70" Height="20"
+                                    VerticalContentAlignment="Center" Grid.Row="1" />
+                                <Label Content="Extensions:" VerticalAlignment="Top" Padding="0,2,2,2" Foreground="White" VerticalContentAlignment="Center" Grid.Column="1" HorizontalAlignment="Left" Margin="0,0,10,0" Grid.RowSpan="2" />
+                                <ListView x:Name="ListFolderizeExtensions" Margin="0,20,10,0" SelectionMode="Multiple" Grid.Column="1" Grid.RowSpan="2" MinHeight="75"
+                                    MaxHeight="{Binding ActualHeight, ConverterParameter=250, Converter={StaticResource SizeConverter}, ElementName=Window, Mode=OneWay}" />
+                                <Label Content="Extensions Mode:" VerticalAlignment="Top" Padding="2,2,2,2" Height="20" Foreground="White" VerticalContentAlignment="Center" Margin="10,0,0,0" Grid.RowSpan="2" Grid.Row="1" />
+                                <CheckBox x:Name="FolderizeEmptyFolders" Content="remove empty folders in input" HorizontalAlignment="Left" Foreground="White" IsChecked="False" Height="20" VerticalContentAlignment="Center" VerticalAlignment="Center"
+                                    Margin="10,25,0,10" IsEnabled="{Binding IsChecked, ElementName=FolderizeMove}" />
+                            </Grid>
+                        </Expander>
+                        <Label Background="{DynamicResource HeaderLabelBackground}" Content="Folderize" VerticalAlignment="Top" Foreground="White" Margin="-2,0,-2,0" />
 
-                </Grid>
+                    </Grid>
+                </ScrollViewer>
             </TabItem>
             <TabItem Background="{DynamicResource TabItemBackground1}" Header="Cue / Bin Tools" Foreground="DarkGray">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <RadioButton x:Name="RadioSplit" Content="Split" Margin="95,25,0,0" Foreground="White" Height="20" GroupName="Merge" HorizontalAlignment="Left" VerticalAlignment="Top" VerticalContentAlignment="Center" IsChecked="True" />
-                    <RadioButton x:Name="RadioMerge" Content="Merge" Margin="10,25,0,0" Foreground="White" Height="20" GroupName="Merge" HorizontalAlignment="Left" VerticalAlignment="Top" VerticalContentAlignment="Center" IsChecked="True" />
-                    <Label Content="Input Cue:" HorizontalAlignment="Left" Margin="10,50,0,0" VerticalAlignment="Top" Background="Transparent" Foreground="White" Height="20" Padding="5,0,5,0" VerticalContentAlignment="Center" />
-                    <Label x:Name="LabelOutputMerge" Content="Output Cue:" HorizontalAlignment="Left" Margin="10,75,0,0" VerticalAlignment="Top" Background="Transparent" Foreground="White" Height="20" Padding="5,0,5,0"
-                        VerticalContentAlignment="Center" Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioMerge}" />
-                    <Label x:Name="LabelOutputSplit" Content="Output Folder:" HorizontalAlignment="Left" Margin="10,75,0,0" VerticalAlignment="Top" Background="Transparent" Foreground="White" Height="20" Padding="5,0,5,0"
-                        VerticalContentAlignment="Center" Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioSplit}" />
-                    <TextBox x:Name="TextBoxOutputSplit" Margin="100,75,65,0" TextWrapping="Wrap" Text="Folder" VerticalAlignment="Top" Height="20"
-                        Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioSplit}" MinWidth="200" />
-                    <TextBox x:Name="TextBoxOutputMerge" Margin="100,75,65,0" TextWrapping="Wrap" Text="File  " VerticalAlignment="Top" Height="20"
-                        Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioMerge}" MinWidth="200" />
-                    <Button x:Name="ButtonOutputMerge" Content="Browse..." HorizontalAlignment="Right" Margin="0,75,10,0" VerticalAlignment="Top" Padding="2,1,2,1" HorizontalContentAlignment="Center" Height="20"
-                        Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioMerge}" />
-                    <TextBox x:Name="TextBoxInputMerge" Margin="100,50,65,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Height="20" MinWidth="200" />
-                    <Button x:Name="ButtonOutputSplit" Content="Browse..." HorizontalAlignment="Right" Margin="0,75,10,0" VerticalAlignment="Top" Padding="2,1,2,1" HorizontalContentAlignment="Center" Height="20"
-                        Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioSplit}" />
-                    <Button x:Name="ButtonInputMerge" Content="Browse..." HorizontalAlignment="Right" Margin="0,50,10,0" VerticalAlignment="Top" Padding="2,1,2,1" HorizontalContentAlignment="Center" Height="20" />
-                    <Label Content="Cue Generator (experimental)" Foreground="White" VerticalAlignment="Top" Grid.Row="1" Margin="-2,5,-2,5" Background="{DynamicResource HeaderLabelBackground}" />
-                    <Button x:Name="ButtonMergeStart" Content="Start Action" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="2,1,2,1" Height="20" Margin="0,105,10,0" />
-                    <Label Content="Folder:" HorizontalAlignment="Left" Margin="10,35,0,0" VerticalAlignment="Top" Background="Transparent" Foreground="White" Height="20" Padding="5,0,5,0" VerticalContentAlignment="Center" Grid.Row="1" />
-                    <TextBox x:Name="TextboxCueGen" Margin="100,35,65,5" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Height="20" MinWidth="200" Grid.Row="1" />
-                    <Button x:Name="ButtonCueGen" Content="Browse..." HorizontalAlignment="Right" Margin="0,35,10,0" VerticalAlignment="Top" Padding="2,1,2,1" HorizontalContentAlignment="Center" Height="20" Grid.Row="1" />
-                    <Button x:Name="ButtonCuegenStart" Content="Start Action" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="2,1,2,1" Height="20" Margin="0,65,10,10" Grid.Row="1" />
-                    <Label Background="{DynamicResource HeaderLabelBackground}" Content="Merge or Split image" VerticalAlignment="Top" Foreground="White" Margin="-2,0,-2,0">
-                    </Label>
-                </Grid>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <RadioButton x:Name="RadioSplit" Content="Split" Margin="95,25,0,0" Foreground="White" Height="20" GroupName="Merge" HorizontalAlignment="Left" VerticalAlignment="Top" VerticalContentAlignment="Center" IsChecked="True" />
+                        <RadioButton x:Name="RadioMerge" Content="Merge" Margin="10,25,0,0" Foreground="White" Height="20" GroupName="Merge" HorizontalAlignment="Left" VerticalAlignment="Top" VerticalContentAlignment="Center" IsChecked="True" />
+                        <Label Content="Input Cue:" HorizontalAlignment="Left" Margin="10,50,0,0" VerticalAlignment="Top" Background="Transparent" Foreground="White" Height="20" Padding="5,0,5,0" VerticalContentAlignment="Center" />
+                        <Label x:Name="LabelOutputMerge" Content="Output Cue:" HorizontalAlignment="Left" Margin="10,75,0,0" VerticalAlignment="Top" Background="Transparent" Foreground="White" Height="20" Padding="5,0,5,0"
+                            VerticalContentAlignment="Center" Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioMerge}" />
+                        <Label x:Name="LabelOutputSplit" Content="Output Folder:" HorizontalAlignment="Left" Margin="10,75,0,0" VerticalAlignment="Top" Background="Transparent" Foreground="White" Height="20" Padding="5,0,5,0"
+                            VerticalContentAlignment="Center" Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioSplit}" />
+                        <TextBox x:Name="TextBoxOutputSplit" Margin="100,75,65,0" TextWrapping="Wrap" Text="Folder" VerticalAlignment="Top" Height="20"
+                            Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioSplit}" MinWidth="200" />
+                        <TextBox x:Name="TextBoxOutputMerge" Margin="100,75,65,0" TextWrapping="Wrap" Text="File  " VerticalAlignment="Top" Height="20"
+                            Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioMerge}" MinWidth="200" />
+                        <Button x:Name="ButtonOutputMerge" Content="Browse..." HorizontalAlignment="Right" Margin="0,75,10,0" VerticalAlignment="Top" Padding="2,1,2,1" HorizontalContentAlignment="Center" Height="20"
+                            Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioMerge}" />
+                        <TextBox x:Name="TextBoxInputMerge" Margin="100,50,65,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Height="20" MinWidth="200" />
+                        <Button x:Name="ButtonOutputSplit" Content="Browse..." HorizontalAlignment="Right" Margin="0,75,10,0" VerticalAlignment="Top" Padding="2,1,2,1" HorizontalContentAlignment="Center" Height="20"
+                            Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioSplit}" />
+                        <Button x:Name="ButtonInputMerge" Content="Browse..." HorizontalAlignment="Right" Margin="0,50,10,0" VerticalAlignment="Top" Padding="2,1,2,1" HorizontalContentAlignment="Center" Height="20" />
+                        <Label Content="Cue Generator (experimental)" Foreground="White" VerticalAlignment="Top" Grid.Row="1" Margin="-2,5,-2,5" Background="{DynamicResource HeaderLabelBackground}" />
+                        <Button x:Name="ButtonMergeStart" Content="Start Action" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="2,1,2,1" Height="20" Margin="0,105,10,0" />
+                        <Label Content="Folder:" HorizontalAlignment="Left" Margin="10,35,0,0" VerticalAlignment="Top" Background="Transparent" Foreground="White" Height="20" Padding="5,0,5,0" VerticalContentAlignment="Center" Grid.Row="1" />
+                        <TextBox x:Name="TextboxCueGen" Margin="100,35,65,5" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Height="20" MinWidth="200" Grid.Row="1" />
+                        <Button x:Name="ButtonCueGen" Content="Browse..." HorizontalAlignment="Right" Margin="0,35,10,0" VerticalAlignment="Top" Padding="2,1,2,1" HorizontalContentAlignment="Center" Height="20" Grid.Row="1" />
+                        <Button x:Name="ButtonCuegenStart" Content="Start Action" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="2,1,2,1" Height="20" Margin="0,65,10,10" Grid.Row="1" />
+                        <Label Background="{DynamicResource HeaderLabelBackground}" Content="Merge or Split image" VerticalAlignment="Top" Foreground="White" Margin="-2,0,-2,0">
+                        </Label>
+                    </Grid>
+                </ScrollViewer>
             </TabItem>
             <TabItem Header="Chdman" Background="{DynamicResource TabItemBackground1}" Foreground="DarkGray" />
             <TabItem Header="Other" Background="{DynamicResource TabItemBackground1}" Foreground="DarkGray">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="1*" />
-                        <ColumnDefinition x:Name="OtherStackL" Width="1*" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Height="200"></StackPanel>
-                    <StackPanel x:Name="OtherStackR" Height="200" Grid.Column="1"></StackPanel>
-                </Grid>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <Grid>
+                        <WrapPanel x:Name="OtherStack" />
+                    </Grid>
+                </ScrollViewer>
             </TabItem>
         </TabControl>
-
     </Grid>
 </Window>
