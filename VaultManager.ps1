@@ -87,39 +87,17 @@ $ConsoleMode = @{
     ForceMinimize      = 11
 }
 $hWnd = [WPIA.ConsoleUtils]::GetConsoleWindow()
-   
+ 
 #endregion GUI functions
 
 #region WPF init
 
-$src = @'
-using System;
-using System.Globalization;
-using System.Windows.Data;
 
-namespace MyConverter
-{
-    public class SizeConverter : IValueConverter
-    {
 
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            return Math.Max(0,double.Parse(value.ToString()) - double.Parse(parameter.ToString()));
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            return double.Parse(value.ToString()) + double.Parse(parameter.ToString());
-        }
-    }
-}
-'@
-
-Add-Type -AssemblyName 'PresentationFramework' 
-$myType = Add-Type -TypeDefinition $src -ReferencedAssemblies PresentationFramework -Passthru
+$myType = (Add-Type -LiteralPath '.\VaultManager.cs' -ReferencedAssemblies (@('PresentationFramework', 'System.Windows.Forms')) -Passthru).Assembly | Sort-Object -Unique
 
 $GUI = [hashtable]::Synchronized(@{}) #Syncronized in case we want parrallel (async) actions that don't lock up the window.
-[string]$XAML = (Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'VaultManager.xml')) -replace 'mc:Ignorable="d"' -replace '^<Win.*', '<Window' -replace 'MyConverter;assembly=', "MyConverter;assembly=$($myType.Assembly)"
+[string]$XAML = (Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'VaultManager.xml')) -replace 'mc:Ignorable="d"' -replace '^<Win.*', '<Window' -replace 'CyberOasis.VaultManager;assembly=', "CyberOasis.VaultManager;assembly=$($myType)"
 
 #Light Theme (currently not implemented)
 $LightTheme = (Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name 'AppsUseLightTheme').AppsUseLightTheme
@@ -145,9 +123,22 @@ $GUI.Nodes = $XAML.SelectNodes("//*[@x:Name]", $GUI.NsMgr) | ForEach-Object {
 #endregion WPF init	
 
 #region Code behind
+$defaultinput = join-path (get-location) 'input'
+$defaultoutput = join-path (get-location) 'output'
+$extensionList = @('.3ds', '.7z', '.apk', '.bin', '.bs', '.cdi', '.chd', '.cia', '.CONFIG', '.cue', '.gba', '.gcm', '.gdi', '.ini', '.iso', '.md', '.nsp', '.png', '.ps1', '.rar', '.raw', '.rvz', '.sav', '.sfc', '.smc', '.srm', '.txt', '.url', '.vpk', '.wad', '.wud', '.wux', '.wbf1', '.wbfs', '.webm', '.xci', '.z64', '.zip')
 $GUI.WPF.Icon = '.\icon.ico'
 $GUI.Nodes.MainGrid.Background.ImageSource = ".\bg.png"
-$GUI.Nodes.ListFolderizeExtensions.ItemsSource = @('.3ds', '.7z', '.apk', '.bin', '.bs', '.cdi', '.chd', '.cia', '.CONFIG', '.cue', '.gba', '.gcm', '.gdi', '.ini', '.iso', '.md', '.nsp', '.png', '.ps1', '.rar', '.raw', '.rvz', '.sav', '.sfc', '.smc', '.srm', '.txt', '.url', '.vpk', '.wad', '.wud', '.wux', '.wbf1', '.wbfs', '.webm', '.xci', '.z64', '.zip')
+$GUI.Nodes.ListFolderizeExtWhite.ItemsSource = $extensionList
+$GUI.Nodes.ListFolderizeExtBlack.ItemsSource = $extensionList
+$GUI.Nodes.FolderizeInput.Text = $defaultinput
+$GUI.Nodes.InputMerge.Text = join-path $defaultinput 'input.cue'
+$GUI.Nodes.OutputMerge.Text = join-path $defaultoutput 'Merged.cue'
+$GUI.Nodes.Outputsplit.Text = $defaultoutput
+$GUI.Nodes.FolderizeOutput.Text = $defaultoutput
+$GUI.Nodes.Cuegen.Text = $defaultinput
+
+
+#dynamic Taools tab
 Get-Folders '.\Tools' | & { Process {
         $readmepath = [System.IO.Path]::Combine($_, 'Readme.txt')
         $manifestpath = [System.IO.Path]::Combine($_, 'Manifest.json')
@@ -178,10 +169,7 @@ Get-Folders '.\Tools' | & { Process {
         }
         if (!($manifest.Readme) -and (Test-Path -PathType Leaf -LiteralPath $readmepath)) {
             $manifest.Readme = $readmepath
-        }
-                
-        
-            
+        }  
 
         $Panel = [System.Windows.Controls.StackPanel]@{
             Orientation = 'Vertical'
@@ -202,7 +190,7 @@ Get-Folders '.\Tools' | & { Process {
                             Name                = 'OtherStart'
                             Width               = '50'
                             HorizontalAlignment = 'Left'
-                        } } | Add-Member -PassThru 'Path' $Manifest.Start))
+                        } } | Add-Member -PassThru 'Path' $Manifest.Start)) #feels like this shoudn't be possible. but it is!
         }
         $ButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
                         Content             = 'Folder'
@@ -226,21 +214,95 @@ Get-Folders '.\Tools' | & { Process {
 #give anything clickable an event
 $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent, [System.Windows.RoutedEventHandler]({
             $object = $_
-            switch ($object.OriginalSource.Name) {
-                'OtherStart' { 
-                    Start-Process explorer.exe $object.OriginalSource.Path
-                    continue
+            if ($object.OriginalSource -is [System.Windows.Controls.Button]) {
+                switch -CaseSensitive -regex ($object.OriginalSource.Name) {
+                    '^OtherStart$' { 
+                        Start-Process explorer.exe $object.OriginalSource.Path
+                        continue
+                    }
+                    '^OtherFolder$' { 
+                        Start-Process explorer.exe $object.OriginalSource.Path
+                        continue
+                    }
+                    '^OtherReadme$' { 
+                        Start-Process explorer.exe $object.OriginalSource.Path
+                        continue
+                    }
+                    '^SaveFile_' {
+                        $textbox = $_ -creplace '^SaveFile_', ''
+                        $objForm = New-Object System.Windows.Forms.SaveFileDialog
+                        $objForm.Filter = 'Cue-Sheet|*.cue'
+                        if ($GUI.Nodes.($textbox).Text) {
+                            $objForm.InitialDirectory = $GUI.Nodes.($textbox).Text
+                        }
+                        if ($objForm.ShowDialog() -eq 'OK') {
+                            $GUI.Nodes.($textbox).Text = $objForm.FileName
+                        }
+                        continue
+                    }
+                    '^OpenFile_' {
+                        $textbox = $_ -creplace '^OpenFile_', ''
+                        $objForm = New-Object System.Windows.Forms.OpenFileDialog
+                        $objForm.Filter = 'Cue-Sheet|*.cue'
+                        if ($GUI.Nodes.($textbox).Text) {
+                            $objForm.InitialDirectory = $GUI.Nodes.($textbox).Text
+                        }
+                        if ($objForm.ShowDialog() -eq 'OK') {
+                            $GUI.Nodes.($textbox).Text = $objForm.FileName
+                        }
+                        continue
+                    }
+                    '^Browse_' {
+                        $textbox = $_ -creplace '^Browse_', ''
+                        $objForm = New-Object CyberOasis.VaultManager.FolderSelectDialog
+                        if ($GUI.Nodes.($textbox).Text) {
+                            $objForm.InitialDirectory = $GUI.Nodes.($textbox).Text
+                        }
+                        if ($objForm.Show()) {
+                            $GUI.Nodes.($textbox).Text = $objForm.FileName
+                        }
+                        continue
+                    }
+                    '^ButtonFolderizeStart$' {
+                        $Values = @{
+                            Source      = $GUI.Nodes.FolderizeInput.Text
+                            Destination = $GUI.Nodes.FolderizeOutput.Text
+                            Move        = $FolderizeMove
+                        }
+                        if ($GUI.Nodes.RadioFolderizeWhitelist.IsChecked) {
+                            $Values.add('whitelist', $GUI.Nodes.ListFolderizeExtWhite.SelectedItems) 
+                        }
+                        elseif ($GUI.Nodes.RadioFolderizeBlacklist.IsChecked) {
+                            $Values.add('blacklist', $GUI.Nodes.ListFolderizeExtBlack.SelectedItems)
+                        }
+                        else {
+                            $Values.add('all', $true)
+                        }
+                        if ($GUI.Nodes.RadioFolderize.IsChecked) {
+                            Folderize @Values
+                        }
+                        else {
+                            UnFolderize @Values
+                        }
+
+                        if ($FolderizeMove -and $FolderizeEmptyFolders) {
+                            Remove-EmptyFolders $GUI.Nodes.FolderizeInput.Text
+                        }
+
+                        continue
+                    }
+                    '^ButtonMergeStart$' {
+
+                        continue
+                    }
+                    '^ButtonCueGenStart$' {
+
+                        continue
+                    }
+                    Default { Write-Host "Unhandled Button: $_" }
                 }
-                'OtherFolder' { 
-                    Start-Process explorer.exe $object.OriginalSource.Path
-                    continue
-                }
-                'OtherReadme' { 
-                    Start-Process explorer.exe $object.OriginalSource.Path
-                    continue
-                }
-                Default { Write-Host $_ }
             }
+            else { Write-Host "[Debug]`tClicked: $($object.OriginalSource.Name)" }
         }))
 
 #endregion Code behind
