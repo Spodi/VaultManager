@@ -92,10 +92,6 @@
             <TabItem Background="{DynamicResource TabItemBackground1}" Header="Cue / Bin Tools" Foreground="DarkGray">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="30*" />
-                            <ColumnDefinition Width="221*" />
-                        </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
@@ -103,23 +99,23 @@
                         <Label Background="{DynamicResource HeaderLabelBackground}" Content="Merge or Split image" VerticalAlignment="Top" Foreground="White" Margin="-2,0,-2,0" Grid.ColumnSpan="2" />
                         <RadioButton x:Name="RadioMerge" Content="Merge" Margin="10,25,0,0" Foreground="White" Height="20" GroupName="Merge" HorizontalAlignment="Left" VerticalAlignment="Top" VerticalContentAlignment="Center" IsChecked="True"
                             Grid.ColumnSpan="2" />
-                        <RadioButton x:Name="RadioSplit" Content="Split" Margin="35,25,0,0" Foreground="White" Height="20" GroupName="Merge" HorizontalAlignment="Left" VerticalAlignment="Top" VerticalContentAlignment="Center" IsChecked="False"
+                        <RadioButton x:Name="RadioSplit" Content="Split" Margin="95,25,0,0" Foreground="White" Height="20" GroupName="Merge" HorizontalAlignment="Left" VerticalAlignment="Top" VerticalContentAlignment="Center" IsChecked="False"
                             Grid.Column="1" />
 
                         <Label Content="Input Cue:" HorizontalAlignment="Left" Margin="10,50,0,0" VerticalAlignment="Top" Background="Transparent" Foreground="White" Height="20" Padding="5,0,5,0" VerticalContentAlignment="Center" Grid.ColumnSpan="2" />
-                        <TextBox x:Name="InputMerge" Margin="40,50,65,0" VerticalAlignment="Top" Height="20" MinWidth="200" IsReadOnly="True" Grid.Column="1" />
+                        <TextBox x:Name="InputMerge" Margin="95,50,65,0" VerticalAlignment="Top" Height="20" MinWidth="200" IsReadOnly="True" Grid.Column="1" />
                         <Button x:Name="OpenFile_InputMerge" Content="Browse..." HorizontalAlignment="Right" Margin="0,50,10,0" VerticalAlignment="Top" Padding="2,1,2,1" HorizontalContentAlignment="Center" Height="20" Grid.Column="1" />
 
                         <Label x:Name="LabelOutputMerge" Content="Output Cue:" HorizontalAlignment="Left" Margin="10,75,0,0" VerticalAlignment="Top" Background="Transparent" Foreground="White" Height="20" Padding="5,0,5,0"
                             VerticalContentAlignment="Center" Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioMerge}" Grid.ColumnSpan="2" />
-                        <TextBox x:Name="OutputMerge" Margin="40,75,65,0" VerticalAlignment="Top" Height="20"
+                        <TextBox x:Name="OutputMerge" Margin="95,75,65,0" VerticalAlignment="Top" Height="20"
                             Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioMerge}" MinWidth="200" IsReadOnly="True" Grid.Column="1" />
                         <Button x:Name="SaveFile_OutputMerge" Content="Browse..." HorizontalAlignment="Right" Margin="0,75,10,0" VerticalAlignment="Top" Padding="2,1,2,1" HorizontalContentAlignment="Center" Height="20"
                             Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioMerge}" Grid.Column="1" />
 
                         <Label x:Name="LabelOutputSplit" Content="Output Folder:" HorizontalAlignment="Left" Margin="10,75,0,0" VerticalAlignment="Top" Background="Transparent" Foreground="White" Height="20" Padding="5,0,5,0"
                             VerticalContentAlignment="Center" Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioSplit}" Grid.ColumnSpan="2" />
-                        <TextBox x:Name="OutputSplit" Margin="40,75,65,0" VerticalAlignment="Top" Height="20"
+                        <TextBox x:Name="OutputSplit" Margin="95,75,65,0" VerticalAlignment="Top" Height="20"
                             Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioSplit}" MinWidth="200" IsReadOnly="True" Grid.Column="1" />
                         <Button x:Name="Browse_OutputSplit" Content="Browse..." HorizontalAlignment="Right" Margin="0,75,10,0" VerticalAlignment="Top" Padding="2,1,2,1" HorizontalContentAlignment="Center" Height="20"
                             Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioSplit}" Grid.Column="1" />
@@ -128,9 +124,9 @@
 
                         <Label Content="Cue Generator (experimental)" Foreground="White" VerticalAlignment="Top" Grid.Row="1" Margin="-2,5,-2,0" Background="{DynamicResource HeaderLabelBackground}" Grid.ColumnSpan="2" />
                         <Label Content="Folder:" HorizontalAlignment="Left" Margin="10,35,0,0" VerticalAlignment="Top" Background="Transparent" Foreground="White" Height="20" Padding="5,0,5,0" VerticalContentAlignment="Center" Grid.Row="1" />
-                        <TextBox x:Name="CueGen" Margin="40,35,65,0" VerticalAlignment="Top" Height="20" MinWidth="200" Grid.Row="1" IsReadOnly="True" Grid.Column="1" />
+                        <TextBox x:Name="CueGen" Margin="95,35,65,0" VerticalAlignment="Top" Height="20" MinWidth="200" Grid.Row="1" IsReadOnly="True" Grid.Column="1" />
                         <Button x:Name="Browse_CueGen" Content="Browse..." HorizontalAlignment="Right" Margin="0,35,10,0" VerticalAlignment="Top" Padding="2,1,2,1" HorizontalContentAlignment="Center" Height="20" Grid.Row="1" Grid.Column="1" />
-                        <Button x:Name="ButtonCuegenStart" Content="Start Action" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="2,1,2,1" Height="20" Margin="0,65,10,0" Grid.Row="1" Grid.Column="1" />
+                        <Button x:Name="ButtonCueGenStart" Content="Start Action" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="2,1,2,1" Height="20" Margin="0,65,10,0" Grid.Row="1" Grid.Column="1" />
                     </Grid>
                 </ScrollViewer>
             </TabItem>

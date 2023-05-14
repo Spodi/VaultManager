@@ -284,25 +284,42 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                         else {
                             UnFolderize @Values
                         }
-
                         if ($FolderizeMove -and $FolderizeEmptyFolders) {
                             Remove-EmptyFolders $GUI.Nodes.FolderizeInput.Text
                         }
-
                         continue
                     }
                     '^ButtonMergeStart$' {
-
+                        $Values = @{
+                            fileIn = $GUI.Nodes.InputMerge.Text
+                        }
+                        if ($GUI.Nodes.RadioMerge.IsChecked) {
+                            $Values.add('fileOut', $GUI.Nodes.OutputSplit.Text)
+                            Split-CueBin @Values
+                        }
+                        else {
+                            $Values.add('destination', $GUI.Nodes.OutputMerge.Text)
+                            Merge-CueBin @Values
+                        }
                         continue
                     }
                     '^ButtonCueGenStart$' {
-
+                        $files = Get-Files ($GUI.Nodes.CueGen.Text) | Where-Object { [System.IO.Path]::GetExtension($_) -eq '.bin' -or [System.IO.Path]::GetExtension($_) -eq '.raw' }
+                        if ($files) {
+                            $cuecontent = New-CueFromFiles $files | ConvertTo-Cue
+                            if ($cuecontent) {
+                                [System.IO.File]::WriteAllLines((Join-Path $GUI.Nodes.CueGen.Text 'GeneratedCue.cue'), $cuecontent) #Cause we don't want BOM, wich can't be disabled in Powershell 5.1 naive functions
+                                Write-Host "Written $((Join-Path $GUI.Nodes.CueGen.Text 'GeneratedCue.cue'))"
+                            }
+                            else { Write-Error 'Resulting file was emtpy.' }
+                        }
+                        else { Write-Error 'No .bin or .raw files in soucre directory.' }
                         continue
                     }
                     Default { Write-Host "Unhandled Button: $_" }
                 }
             }
-            else { Write-Host "[Debug]`tClicked: $($object.OriginalSource.Name)" }
+            #else { Write-Host "[Debug]`tClicked: $($object.OriginalSource.Name)" }
         }))
 
 #endregion Code behind
