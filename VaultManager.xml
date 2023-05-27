@@ -130,7 +130,7 @@
                     </Grid>
                 </ScrollViewer>
             </TabItem>
-            <TabItem Header="Chdman" Background="{DynamicResource TabItemBackground1}" Foreground="DarkGray" />
+            <TabItem Header="[WIP]" Background="{DynamicResource TabItemBackground1}" Foreground="DarkGray" />
             <TabItem Header="Other" Background="{DynamicResource TabItemBackground1}" Foreground="DarkGray">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <Grid>

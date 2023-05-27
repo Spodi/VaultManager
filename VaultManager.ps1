@@ -1,11 +1,14 @@
 [CmdletBinding()]
 param (
     [Parameter()][switch]$NoGUI,
-    [Parameter()][string]$WorkingDir
+    [Parameter(Position = 0)][string]$WorkingDir
 )
-Clear-Host
+
+$PSScriptRootEsc = $PSScriptRoot -replace '(\?|\*|\[)', '`$1'
+if ($WorkingDir) { Set-Location $WorkingDir }
+
 $host.ui.RawUI.WindowTitle = 'VaultManager Console'
-Import-Module '.\VaultManager.psm1' -force
+Import-Module (Join-Path $PSScriptRootEsc '.\VaultManager.psm1') -force
 
 if ($NoGUI) {
     Write-Host 'Loaded additional functions:'
@@ -15,8 +18,8 @@ if ($NoGUI) {
     Write-Host 'Type "Get-Help <function> -ShowWindow" to display help for <function> in an additional window.'
     return
 }
+Clear-Host
 Write-Warning 'Closing this console kills the GUI!'
-
 
 
 
@@ -94,10 +97,10 @@ $hWnd = [WPIA.ConsoleUtils]::GetConsoleWindow()
 
 
 
-$myType = (Add-Type -LiteralPath '.\VaultManager.cs' -ReferencedAssemblies (@('PresentationFramework', 'System.Windows.Forms')) -Passthru).Assembly | Sort-Object -Unique
+$myType = (Add-Type -LiteralPath (Join-Path $PSScriptRootEsc '.\VaultManager.cs') -ReferencedAssemblies (@('PresentationFramework', 'System.Windows.Forms')) -Passthru).Assembly | Sort-Object -Unique
 
 $GUI = [hashtable]::Synchronized(@{}) #Syncronized in case we want parrallel (async) actions that don't lock up the window.
-[string]$XAML = (Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'VaultManager.xml')) -replace 'mc:Ignorable="d"' -replace '^<Win.*', '<Window' -replace 'CyberOasis.VaultManager;assembly=', "CyberOasis.VaultManager;assembly=$($myType)"
+[string]$XAML = (Get-Content -Raw -LiteralPath (Join-Path $PSScriptRootEsc '.\VaultManager.xml')) -replace 'mc:Ignorable="d"' -replace '^<Win.*', '<Window' -replace 'CyberOasis.VaultManager;assembly=', "CyberOasis.VaultManager;assembly=$($myType)"
 
 #Light Theme (currently not implemented)
 $LightTheme = (Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name 'AppsUseLightTheme').AppsUseLightTheme
@@ -126,8 +129,10 @@ $GUI.Nodes = $XAML.SelectNodes("//*[@x:Name]", $GUI.NsMgr) | ForEach-Object {
 $defaultinput = join-path (get-location) 'input'
 $defaultoutput = join-path (get-location) 'output'
 $extensionList = @('.3ds', '.7z', '.apk', '.bin', '.bs', '.cdi', '.chd', '.cia', '.CONFIG', '.cue', '.gba', '.gcm', '.gdi', '.ini', '.iso', '.md', '.nsp', '.png', '.ps1', '.rar', '.raw', '.rvz', '.sav', '.sfc', '.smc', '.srm', '.txt', '.url', '.vpk', '.wad', '.wud', '.wux', '.wbf1', '.wbfs', '.webm', '.xci', '.z64', '.zip')
-$GUI.WPF.Icon = '.\icon.ico'
-$GUI.Nodes.MainGrid.Background.ImageSource = ".\bg.png"
+$GUI.WPF.Icon = (Join-Path $PSScriptRootEsc '.\icon.ico')
+
+$GUI.WPF.TaskbarItemInfo = [System.Windows.Shell.TaskbarItemInfo]@{overlay = (Join-Path $PSScriptRootEsc '.\icon.ico')}
+$GUI.Nodes.MainGrid.Background.ImageSource = (Join-Path $PSScriptRootEsc '.\bg.png')
 $GUI.Nodes.ListFolderizeExtWhite.ItemsSource = $extensionList
 $GUI.Nodes.ListFolderizeExtBlack.ItemsSource = $extensionList
 $GUI.Nodes.FolderizeInput.Text = $defaultinput
@@ -139,77 +144,81 @@ $GUI.Nodes.Cuegen.Text = $defaultinput
 
 
 #dynamic Taools tab
-Get-Folders '.\Tools' | & { Process {
-        $readmepath = [System.IO.Path]::Combine($_, 'Readme.txt')
-        $manifestpath = [System.IO.Path]::Combine($_, 'Manifest.json')
+try { $tools = Get-Folders '.\Tools' -ErrorAction Stop }
+catch {  }
+if ($tools) {
+    $tools | & { Process {
+            $readmepath = [System.IO.Path]::Combine($_, 'Readme.txt')
+            $manifestpath = [System.IO.Path]::Combine($_, 'Manifest.json')
 
-        $manifest = [PSCustomObject]@{
-            Name   = $null
-            Start  = $null
-            Readme = $null
-        }
-        if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
-            $manifest = Get-Content -raw $manifestpath | ConvertFrom-Json
-        }
-        If (!$manifest.Name) {
-            $manifest.Name = split-path -leaf $_
-        }
-
-        if ($manifest.Start) { 
-            $manifest.Start = [System.IO.Path]::Combine($_, $manifest.Start)          
-            If (!(Test-Path -PathType Leaf -LiteralPath $Manifest.Start)) {
-                $Manifest.Start = $null
+            $manifest = [PSCustomObject]@{
+                Name   = $null
+                Start  = $null
+                Readme = $null
             }
-        }
-        if ($manifest.Readme) {
-            $manifest.Readme = [System.IO.Path]::Combine($_, $manifest.Readme)
-            If (!(Test-Path -PathType Leaf -LiteralPath $Manifest.Readme)) {
-                $Manifest.Readme = $null
+            if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
+                $manifest = Get-Content -raw $manifestpath | ConvertFrom-Json
             }
-        }
-        if (!($manifest.Readme) -and (Test-Path -PathType Leaf -LiteralPath $readmepath)) {
-            $manifest.Readme = $readmepath
-        }  
+            If (!$manifest.Name) {
+                $manifest.Name = split-path -leaf $_
+            }
 
-        $Panel = [System.Windows.Controls.StackPanel]@{
-            Orientation = 'Vertical'
-            Margin      = '3,0,3,0'
-        } 
-        $Label = [System.Windows.Controls.Label]@{
-            Foreground = 'White'
-            Content    = $Manifest.Name
-            Background = $GUI.WPF.TryfindResource('HeaderLabelBackground')
-        }
-        $Panel.AddChild($Label)  
-        $ButtonPanel = [System.Windows.Controls.Grid]@{
-            MinWidth = '156'
-        }
-        If ($manifest.Start) {
-            $ButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
-                            Content             = 'Start'
-                            Name                = 'OtherStart'
-                            Width               = '50'
-                            HorizontalAlignment = 'Left'
-                        } } | Add-Member -PassThru 'Path' $Manifest.Start)) #feels like this shoudn't be possible. but it is!
-        }
-        $ButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
-                        Content             = 'Folder'
-                        Name                = 'OtherFolder'
-                        Width               = '50'
-                        HorizontalAlignment = 'Center'
-                    } } | Add-Member -PassThru 'Path' $_))
-        If ($manifest.Readme) {
-            $ButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
-                            Content             = 'Readme'
-                            Name                = 'OtherReadme'
-                            Width               = '50'
-                            HorizontalAlignment = 'Right'
-                        } } | Add-Member -PassThru 'Path' $Manifest.Readme))
-        }
+            if ($manifest.Start) { 
+                $manifest.Start = [System.IO.Path]::Combine($_, $manifest.Start)          
+                If (!(Test-Path -PathType Leaf -LiteralPath $Manifest.Start)) {
+                    $Manifest.Start = $null
+                }
+            }
+            if ($manifest.Readme) {
+                $manifest.Readme = [System.IO.Path]::Combine($_, $manifest.Readme)
+                If (!(Test-Path -PathType Leaf -LiteralPath $Manifest.Readme)) {
+                    $Manifest.Readme = $null
+                }
+            }
+            if (!($manifest.Readme) -and (Test-Path -PathType Leaf -LiteralPath $readmepath)) {
+                $manifest.Readme = $readmepath
+            }  
 
-        $Panel.AddChild($ButtonPanel)       
-        $GUI.Nodes.OtherStack.AddChild($Panel)
-    } }
+            $Panel = [System.Windows.Controls.StackPanel]@{
+                Orientation = 'Vertical'
+                Margin      = '3,0,3,0'
+            } 
+            $Label = [System.Windows.Controls.Label]@{
+                Foreground = 'White'
+                Content    = $Manifest.Name
+                Background = $GUI.WPF.TryfindResource('HeaderLabelBackground')
+            }
+            $Panel.AddChild($Label)  
+            $ButtonPanel = [System.Windows.Controls.Grid]@{
+                MinWidth = '156'
+            }
+            If ($manifest.Start) {
+                $ButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
+                                Content             = 'Start'
+                                Name                = 'OtherStart'
+                                Width               = '50'
+                                HorizontalAlignment = 'Left'
+                            } } | Add-Member -PassThru 'Path' $Manifest.Start)) #feels like this shoudn't be possible. but it is!
+            }
+            $ButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
+                            Content             = 'Folder'
+                            Name                = 'OtherFolder'
+                            Width               = '50'
+                            HorizontalAlignment = 'Center'
+                        } } | Add-Member -PassThru 'Path' $_))
+            If ($manifest.Readme) {
+                $ButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
+                                Content             = 'Readme'
+                                Name                = 'OtherReadme'
+                                Width               = '50'
+                                HorizontalAlignment = 'Right'
+                            } } | Add-Member -PassThru 'Path' $Manifest.Readme))
+            }
+
+            $Panel.AddChild($ButtonPanel)       
+            $GUI.Nodes.OtherStack.AddChild($Panel)
+        } }
+} else { Write-Warning "Empty `"Tools`" folder `"$(Resolve-Path '.\Tools')`". The `"Other`"-Tab will be empty." }
 
 #give anything clickable an event
 $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent, [System.Windows.RoutedEventHandler]({
@@ -321,8 +330,11 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
             }
             #else { Write-Host "[Debug]`tClicked: $($object.OriginalSource.Name)" }
         }))
+        $GUI.WPF.AddHandler([System.Windows.Window]::LoadedEvent, [System.Windows.RoutedEventHandler]({
+            [void]$GUI.WPF.Activate()
+        }))
 
 #endregion Code behind
 
-[void][WPIA.ConsoleUtils]::ShowWindow($hWnd, $ConsoleMode.MinimizeNoActivate) #will only minimize windows terminal with all its tabs -.-
+#[void][WPIA.ConsoleUtils]::ShowWindow($hWnd, $ConsoleMode.MinimizeNoActivate) #will only minimize windows terminal with all its tabs -.-
 [void]$GUI.WPF.ShowDialog() #show window - main thread is blocked until closed

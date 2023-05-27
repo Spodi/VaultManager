@@ -1,23 +1,64 @@
-:: This is a wrapper to start the PowerShell script in the
-:: same directory with the same name automatically.
-:: PowerShell is a bit paranoid about starting scripts otherwise.
-:: This also takes care of things if called from a 32-bit app.
+::[Bat To Exe Converter]
+::
+::fBE1pAF6MU+EWHreyHcjLQlHcDeSM2+zOoYf+uHr+/m7gVQfUfByVIrc07uAHNYS/0nwWJcj131fivcOC1VIcBXL
+::fBE1pAF6MU+EWHreyHcjLQlHcDeSM2+zOoYf+uHr+/m7gVQfUfByVIrc07uAHNYS/0nwWJcj131fivcFDxRWMBuoYW8=
+::fBE1pAF6MU+EWHreyHcjLQlHcDeSM2+zOoYf+uHr+/m7gVQfUfByVIrc07uAHNYS/0nwWJcj131fivc6DQ5Uaj+qYA4zrHwMtXfl
+::fBE1pAF6MU+EWHreyHcjLQlHcDeSM2+zOoYf+uHr+/m7gVQfUfByVIrc07uAHNYS/0nwWJcj131fivc6DQ5Uaj+qYA4zrHwMpnfUVw==
+::fBE1pAF6MU+EWHreyHcjLQlHcDeSM2+zOoYf+uHr+/m7gVQfUfByVIrc07uAHNYS/0nwWJcj131fivc6DQ5Uaj+qYA4zrHwMpneIZqc=
+::fBE1pAF6MU+EWHreyHcjLQlHcDeSM2+zOoYf+uHr+/m7gVQfUfByVIrc07uAHNYS/0nwWJcj131fivc6DQ5Uaj+qYA4zrHwMrmmJVw==
+::YAwzoRdxOk+EWAjk
+::fBw5plQjdCyDJGyX8VAjFChEQwCLAFi5FLwM/PvHzPOFp19QeOc4cYDV5oKPNewHx0TqdJEoxEZTm8QCQhJbcXI=
+::YAwzuBVtJxjWCl3EqQJgSA==
+::ZR4luwNxJguZRRnk
+::Yhs/ulQjdF+5
+::cxAkpRVqdFKZSDk=
+::cBs/ulQjdF65
+::ZR41oxFsdFKZSDk=
+::eBoioBt6dFKZSDk=
+::cRo6pxp7LAbNWATEpSI=
+::egkzugNsPRvcWATEpCI=
+::dAsiuh18IRvcCxnZtBJQ
+::cRYluBh/LU+EWAnk
+::YxY4rhs+aU+JeA==
+::cxY6rQJ7JhzQF1fEqQJQ
+::ZQ05rAF9IBncCkqN+0xwdVs0
+::ZQ05rAF9IAHYFVzEqQJQ
+::eg0/rx1wNQPfEVWB+kM9LVsJDGQ=
+::fBEirQZwNQPfEVWB+kM9LVsJDGQ=
+::cRolqwZ3JBvQF1fEqQJQ
+::dhA7uBVwLU+EWDk=
+::YQ03rBFzNR3SWATElA==
+::dhAmsQZ3MwfNWATElA==
+::ZQ0/vhVqMQ3MEVWAtB9wSA==
+::Zg8zqx1/OA3MEVWAtB9wSA==
+::dhA7pRFwIByZRRnk
+::Zh4grVQjdCyDJGyX8VAjFChEQwCLAFi5FLwM/PvHzPOFp19QeOc4cYDV5oKPNewHx0TqdJEoxEZZl8YcBRddei6dbxo4vUNDuGWCMtXSthfkKg==
+::YB416Ek+ZG8=
+::
+::
+::978f952a14a936cc963da21a135fa983
 @echo off
-if exist "%systemroot%\SysNative\WindowsPowerShell\v1.0\powershell.exe" (
-	echo Starting %systemroot%\SysNative\WindowsPowerShell\v1.0\powershell.exe -NoLogo -ExecutionPolicy Bypass -File "%~dpn0.ps1" %*
-	echo.
-	if /I "%~1" == "-NoGUI" (
-		start %systemroot%\SysNative\WindowsPowerShell\v1.0\powershell.exe -NoLogo -ExecutionPolicy Bypass -NoExit -File "%~dpn0.ps1" %*
+set _NoGUI=0
+if /I "%~1" == "-NoGUI" set _NoGUI=1
+if /I "%~2" == "-NoGUI" set _NoGUI=1
+if /I "%~3" == "-NoGUI" set _NoGUI=1
+if /I "%~4" == "-NoGUI" set _NoGUI=1
+if /I "%~5" == "-NoGUI" set _NoGUI=1
+if /I "%~6" == "-NoGUI" set _NoGUI=1
+if /I "%~7" == "-NoGUI" set _NoGUI=1
+if /I "%~8" == "-NoGUI" set _NoGUI=1
+if /I "%~9" == "-NoGUI" set _NoGUI=1
+::echo %~0
+set _remove=%~0
+set _arg=%*
+call set arg=%%_arg:"%_remove%"=%%
+call set arg=%%_arg:%_remove%=%%
+::echo "%b2eincfilepath%\VaultManager.ps1" %arg%
+
+
+if %_NoGUI%==1 (
+		call %systemroot%\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -NoExit -File "%b2eincfilepath%\VaultManager.ps1" %arg%
 	) else (
-		call %systemroot%\SysNative\WindowsPowerShell\v1.0\powershell.exe -NoLogo -ExecutionPolicy Bypass -File "%~dpn0.ps1" %*
+		call %systemroot%\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -NoLogo -File "%b2eincfilepath%\VaultManager.ps1" %arg%
 	)
-) else (
-	echo Starting %systemroot%\System32\WindowsPowerShell\v1.0\powershell.exe -NoLogo -ExecutionPolicy Bypass -File "%~dpn0.ps1" %*
-	echo.
-	if /I "%~1" == "-NoGUI" (
-		start %systemroot%\System32\WindowsPowerShell\v1.0\powershell.exe -NoLogo -ExecutionPolicy Bypass -NoExit -File "%~dpn0.ps1" %*
-	) else (
-		call %systemroot%\System32\WindowsPowerShell\v1.0\powershell.exe -NoLogo -ExecutionPolicy Bypass -File "%~dpn0.ps1" %*
-	)
-)
 EXIT /b

@@ -20,7 +20,7 @@ namespace CyberOasis.VaultManager
             return double.Parse(value.ToString()) + double.Parse(parameter.ToString());
         }
     }
-
+    /// The original namespace was ErikE.Shuriken . So thanks to ErikE on StackOverflow!
     /// <summary>
     /// Present the Windows Vista-style open file dialog to select a folder. Fall back for older Windows Versions
     /// </summary>
