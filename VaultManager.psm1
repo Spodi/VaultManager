@@ -232,6 +232,35 @@ function Get-Folders {
         [System.IO.Directory]::SetCurrentDirectory($prevDir)
     }
 }
+function Get-Folders {
+    <#
+    .SYNOPSIS
+    Basically "Get-ChildItem -Directory -recurse", but slightly faster. Gets paths only.
+    .LINK
+    Get-Files
+    .LINK
+    Get-FileSystemEntries
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]  [string] $path,
+        [Parameter(Mandatory, ValueFromPipeline)]  [switch] $subs
+    )
+    begin {
+        $prevDir = [System.IO.Directory]::GetCurrentDirectory()
+        [System.IO.Directory]::SetCurrentDirectory((Get-location))
+    }
+    process {
+        [System.IO.Directory]::EnumerateDirectories($path) | & { process {
+                if ($_) {
+                    Write-Output ([System.IO.Directory]::EnumerateDirectories($_))
+                }
+            } }
+    }
+    end {
+        [System.IO.Directory]::SetCurrentDirectory($prevDir)
+    }
+}
 function Get-FileSystemEntries {
     <#
     .SYNOPSIS

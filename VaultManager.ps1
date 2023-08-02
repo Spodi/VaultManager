@@ -131,7 +131,7 @@ $defaultoutput = join-path (get-location) 'output'
 $extensionList = @('.3ds', '.7z', '.apk', '.bin', '.bs', '.cdi', '.chd', '.cia', '.CONFIG', '.cue', '.gba', '.gcm', '.gdi', '.ini', '.iso', '.md', '.nsp', '.png', '.ps1', '.rar', '.raw', '.rvz', '.sav', '.sfc', '.smc', '.srm', '.txt', '.url', '.vpk', '.wad', '.wud', '.wux', '.wbf1', '.wbfs', '.webm', '.xci', '.z64', '.zip')
 $GUI.WPF.Icon = (Join-Path $PSScriptRootEsc '.\icon.ico')
 
-$GUI.WPF.TaskbarItemInfo = [System.Windows.Shell.TaskbarItemInfo]@{overlay = (Join-Path $PSScriptRootEsc '.\icon.ico')}
+$GUI.WPF.TaskbarItemInfo = [System.Windows.Shell.TaskbarItemInfo]@{overlay = (Join-Path $PSScriptRootEsc '.\icon.ico') }
 $GUI.Nodes.MainGrid.Background.ImageSource = (Join-Path $PSScriptRootEsc '.\bg.png')
 $GUI.Nodes.ListFolderizeExtWhite.ItemsSource = $extensionList
 $GUI.Nodes.ListFolderizeExtBlack.ItemsSource = $extensionList
@@ -144,81 +144,116 @@ $GUI.Nodes.Cuegen.Text = $defaultinput
 
 
 #dynamic Taools tab
-try { $tools = Get-Folders '.\Tools' -ErrorAction Stop }
+try { $tools = Get-Folders -subs '.\Tools' -ErrorAction Stop }
 catch {  }
 if ($tools) {
     $tools | & { Process {
+            $categoryPath = [System.IO.Path]::GetDirectoryName($_)
+            $categoryFolder = split-path($categoryPath) -Leaf
             $readmepath = [System.IO.Path]::Combine($_, 'Readme.txt')
             $manifestpath = [System.IO.Path]::Combine($_, 'Manifest.json')
 
             $manifest = [PSCustomObject]@{
-                Name   = $null
-                Start  = $null
-                Readme = $null
+                Path = $_
             }
+            
             if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
                 $manifest = Get-Content -raw $manifestpath | ConvertFrom-Json
             }
             If (!$manifest.Name) {
-                $manifest.Name = split-path -leaf $_
+                $manifest | Add-Member Name (split-path -leaf $_)
             }
 
             if ($manifest.Start) { 
                 $manifest.Start = [System.IO.Path]::Combine($_, $manifest.Start)          
                 If (!(Test-Path -PathType Leaf -LiteralPath $Manifest.Start)) {
-                    $Manifest.Start = $null
+                    $manifest | Add-Member Start $null -force
                 }
+            }
+            else {
+                $manifest | Add-Member Start $null
             }
             if ($manifest.Readme) {
                 $manifest.Readme = [System.IO.Path]::Combine($_, $manifest.Readme)
                 If (!(Test-Path -PathType Leaf -LiteralPath $Manifest.Readme)) {
-                    $Manifest.Readme = $null
+                    $manifest | Add-Member Readme $null -force
                 }
+            }
+            else {
+                $manifest | Add-Member Readme $null
             }
             if (!($manifest.Readme) -and (Test-Path -PathType Leaf -LiteralPath $readmepath)) {
                 $manifest.Readme = $readmepath
-            }  
-
-            $Panel = [System.Windows.Controls.StackPanel]@{
+            }
+            If (!$manifest.Category) {
+                $manifest | Add-Member Category $categoryFolder
+            }
+            $manifest
+        } } | Group-Object Category | & { Process {
+            $PanelCategory = [System.Windows.Controls.StackPanel]@{
                 Orientation = 'Vertical'
-                Margin      = '3,0,3,0'
-            } 
-            $Label = [System.Windows.Controls.Label]@{
-                Foreground = 'White'
-                Content    = $Manifest.Name
-                Background = $GUI.WPF.TryfindResource('HeaderLabelBackground')
+                Margin      = '0,0,10,15'
             }
-            $Panel.AddChild($Label)  
-            $ButtonPanel = [System.Windows.Controls.Grid]@{
-                MinWidth = '156'
+            $LabelCategory = [System.Windows.Controls.Label]@{
+                Foreground               = 'Yellow'
+                Content                  = $_.Name
+                Background               = $GUI.WPF.TryfindResource('HeaderLabelBackground')
+                FontSize                 = 18
+                FontWeight               = 'Bold'
+                VerticalContentAlignment = 'Center'
+                Margin                   = '0,0,0,-5'
+                
             }
-            If ($manifest.Start) {
-                $ButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
-                                Content             = 'Start'
-                                Name                = 'OtherStart'
-                                Width               = '50'
-                                HorizontalAlignment = 'Left'
-                            } } | Add-Member -PassThru 'Path' $Manifest.Start)) #feels like this shoudn't be possible. but it is!
+            $PanelApps = [System.Windows.Controls.WrapPanel]@{
+                Orientation = 'Horizontal'
             }
-            $ButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
-                            Content             = 'Folder'
-                            Name                = 'OtherFolder'
-                            Width               = '50'
-                            HorizontalAlignment = 'Center'
-                        } } | Add-Member -PassThru 'Path' $_))
-            If ($manifest.Readme) {
-                $ButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
-                                Content             = 'Readme'
-                                Name                = 'OtherReadme'
-                                Width               = '50'
-                                HorizontalAlignment = 'Right'
-                            } } | Add-Member -PassThru 'Path' $Manifest.Readme))
-            }
+            $PanelCategory.AddChild($LabelCategory)
+            $PanelCategory.AddChild($PanelApps)
 
-            $Panel.AddChild($ButtonPanel)       
-            $GUI.Nodes.OtherStack.AddChild($Panel)
+            $_.Group | & { Process {
+                    $Panel = [System.Windows.Controls.StackPanel]@{
+                        Orientation = 'Vertical'
+                        Margin      = '3,0,3,10'
+                    } 
+                    $Label = [System.Windows.Controls.Label]@{
+                        Foreground = 'White'
+                        Content    = $_.Name
+                        Background = $GUI.WPF.TryfindResource('HeaderLabelBackground')
+                    }
+                    $Panel.AddChild($Label)  
+                    $ButtonPanel = [System.Windows.Controls.Grid]@{
+                        MinWidth = '156'
+                    }
+                    If ($_.Start) {
+                        $ButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
+                                        Content             = 'Start'
+                                        Name                = 'OtherStart'
+                                        Width               = '50'
+                                        HorizontalAlignment = 'Left'
+                                    } } | Add-Member -PassThru 'Path' $_.Start)) #feels like this shoudn't be possible. but it is!
+                    }
+                    $ButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
+                                    Content             = 'Folder'
+                                    Name                = 'OtherFolder'
+                                    Width               = '50'
+                                    HorizontalAlignment = 'Center'
+                                } } | Add-Member -PassThru 'Path' $_.Path))
+                    If ($_.Readme) {
+                        $ButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
+                                        Content             = 'Readme'
+                                        Name                = 'OtherReadme'
+                                        Width               = '50'
+                                        HorizontalAlignment = 'Right'
+                                    } } | Add-Member -PassThru 'Path' $_.Readme))
+                    }
+                    $Panel.AddChild($ButtonPanel)    
+                    $PanelApps.AddChild($Panel)   
+                } }
+            $GUI.Nodes.OtherStack.AddChild($PanelCategory) 
+
         } }
-} else { Write-Warning "Empty `"Tools`" folder `"$(Resolve-Path '.\Tools')`". The `"Other`"-Tab will be empty." }
+}
+else { Write-Warning "Empty `"Tools`" folder `"$(Resolve-Path '.\Tools')`". The `"MIsc Tools`"-Tab will be empty." }
 
 #give anything clickable an event
 $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent, [System.Windows.RoutedEventHandler]({
@@ -317,7 +352,7 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                         if ($files) {
                             $cuecontent = New-CueFromFiles $files | ConvertTo-Cue
                             if ($cuecontent) {
-                                [System.IO.File]::WriteAllLines((Join-Path $GUI.Nodes.CueGen.Text 'GeneratedCue.cue'), $cuecontent) #Cause we don't want BOM, wich can't be disabled in Powershell 5.1 naive functions
+                                [System.IO.File]::WriteAllLines((Join-Path $GUI.Nodes.CueGen.Text 'GeneratedCue.cue'), $cuecontent) #Cause we don't want BOM, wich can't be disabled in Powershell 5.1 native functions
                                 Write-Host "Written $((Join-Path $GUI.Nodes.CueGen.Text 'GeneratedCue.cue'))"
                             }
                             else { Write-Error 'Resulting file was emtpy.' }
@@ -330,7 +365,7 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
             }
             #else { Write-Host "[Debug]`tClicked: $($object.OriginalSource.Name)" }
         }))
-        $GUI.WPF.AddHandler([System.Windows.Window]::LoadedEvent, [System.Windows.RoutedEventHandler]({
+$GUI.WPF.AddHandler([System.Windows.Window]::LoadedEvent, [System.Windows.RoutedEventHandler]({
             [void]$GUI.WPF.Activate()
         }))
 

@@ -7,7 +7,7 @@
     xmlns:Converter="clr-namespace:CyberOasis.VaultManager;assembly="
     mc:Ignorable="d"
     Title="Vault Manager"
-    Background="#FF141414" Foreground="White" MinWidth="346" Width="508" MinHeight="40" Height="290" WindowStartupLocation="CenterScreen" SizeToContent="Height" x:Name="Window">
+    Background="#FF141414" Foreground="White" MinWidth="373" Width="535" MinHeight="40" Height="290" WindowStartupLocation="CenterScreen" SizeToContent="Height" x:Name="Window">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <Converter:SizeConverter x:Key="SizeConverter" />
@@ -130,8 +130,7 @@
                     </Grid>
                 </ScrollViewer>
             </TabItem>
-            <TabItem Header="[WIP]" Background="{DynamicResource TabItemBackground1}" Foreground="DarkGray" />
-            <TabItem Header="Other" Background="{DynamicResource TabItemBackground1}" Foreground="DarkGray">
+            <TabItem Header="Misc Tools" Background="{DynamicResource TabItemBackground1}" Foreground="DarkGray">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <Grid>
                         <WrapPanel x:Name="OtherStack" />
