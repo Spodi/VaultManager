@@ -396,3 +396,8 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+compiled/
+Tools/
+Bat_To_Exe_Converter_x64.exe
+settings

@@ -190,66 +190,86 @@ if ($tools) {
             }
             $manifest
         } } | Group-Object Category | & { Process {
-            $PanelCategory = [System.Windows.Controls.StackPanel]@{
-                Orientation = 'Vertical'
-                Margin      = '0,0,10,15'
+            $CategoryBorder = [System.Windows.Controls.Border]@{
+                BorderBrush     = '#99CC00CC'
+                Margin          = '0,0,6,6'
+                BorderThickness = '1'
+                Background      = '#33000000'
             }
-            $LabelCategory = [System.Windows.Controls.Label]@{
+            $CategoryPanel = [System.Windows.Controls.StackPanel]@{
+                Orientation = 'Vertical'
+            }
+            $CategoryLabel = [System.Windows.Controls.Label]@{
                 Foreground               = 'Yellow'
                 Content                  = $_.Name
-                Background               = $GUI.WPF.TryfindResource('HeaderLabelBackground')
-                FontSize                 = 18
+                Background               = '#50FF00FF'
+                FontSize                 = 16
                 FontWeight               = 'Bold'
-                VerticalContentAlignment = 'Center'
-                Margin                   = '0,0,0,-5'
-                
+                VerticalContentAlignment = 'Center'            
             }
-            $PanelApps = [System.Windows.Controls.WrapPanel]@{
+            $CategoryInnerBorder = [System.Windows.Controls.Border]@{
+                Padding = '3,3,0,0'  
+            }
+            $CategoryInnerPanel = [System.Windows.Controls.WrapPanel]@{
                 Orientation = 'Horizontal'
             }
-            $PanelCategory.AddChild($LabelCategory)
-            $PanelCategory.AddChild($PanelApps)
+            $CategoryBorder.AddChild($CategoryPanel)
+            $CategoryPanel.AddChild($CategoryLabel)
+            $CategoryPanel.AddChild($CategoryInnerBorder)
+            $CategoryInnerBorder.AddChild($CategoryInnerPanel)
 
             $_.Group | & { Process {
-                    $Panel = [System.Windows.Controls.StackPanel]@{
+                    # in CategoryInnerPanel
+                    $AppOuterBorder = [System.Windows.Controls.Border]@{
+                        BorderBrush     = '#66CC00CC'
+                        Margin          = '0,0,3,4'
+                        BorderThickness = '1'
+                        Background      = '#33000000'
+                    }
+                    $AppPanel = [System.Windows.Controls.StackPanel]@{
                         Orientation = 'Vertical'
-                        Margin      = '3,0,3,10'
                     } 
-                    $Label = [System.Windows.Controls.Label]@{
+                    $AppLabel = [System.Windows.Controls.Label]@{
                         Foreground = 'White'
                         Content    = $_.Name
-                        Background = $GUI.WPF.TryfindResource('HeaderLabelBackground')
+                        Background = '#33FF00FF'
                     }
-                    $Panel.AddChild($Label)  
-                    $ButtonPanel = [System.Windows.Controls.Grid]@{
+                    $AppInnerBorder = [System.Windows.Controls.Border]@{
+                        Padding = '3,3,3,3'  
+                    }
+                    $AppButtonPanel = [System.Windows.Controls.Grid]@{
                         MinWidth = '156'
                     }
                     If ($_.Start) {
-                        $ButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
+                        $AppButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
                                         Content             = 'Start'
                                         Name                = 'OtherStart'
                                         Width               = '50'
                                         HorizontalAlignment = 'Left'
                                     } } | Add-Member -PassThru 'Path' $_.Start)) #feels like this shoudn't be possible. but it is!
                     }
-                    $ButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
+                    $AppButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
                                     Content             = 'Folder'
                                     Name                = 'OtherFolder'
                                     Width               = '50'
                                     HorizontalAlignment = 'Center'
                                 } } | Add-Member -PassThru 'Path' $_.Path))
                     If ($_.Readme) {
-                        $ButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
+                        $AppButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
                                         Content             = 'Readme'
                                         Name                = 'OtherReadme'
                                         Width               = '50'
                                         HorizontalAlignment = 'Right'
                                     } } | Add-Member -PassThru 'Path' $_.Readme))
                     }
-                    $Panel.AddChild($ButtonPanel)    
-                    $PanelApps.AddChild($Panel)   
+                    $AppPanel.AddChild($AppLabel)
+                    $AppPanel.AddChild($AppInnerBorder)
+                    $AppInnerBorder.AddChild($AppButtonPanel)
+                    $AppOuterBorder.AddChild($AppPanel)
+                    $CategoryInnerPanel.AddChild($AppOuterBorder)
+                       
                 } }
-            $GUI.Nodes.OtherStack.AddChild($PanelCategory) 
+            $GUI.Nodes.OtherStack.AddChild($CategoryBorder) 
 
         } }
 }

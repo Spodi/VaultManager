@@ -7,7 +7,7 @@
     xmlns:Converter="clr-namespace:CyberOasis.VaultManager;assembly="
     mc:Ignorable="d"
     Title="Vault Manager"
-    Background="#FF141414" Foreground="White" MinWidth="373" Width="535" MinHeight="40" Height="290" WindowStartupLocation="CenterScreen" SizeToContent="Height" x:Name="Window">
+    Background="#FF141414" Foreground="White" MinWidth="405" Width="583" MinHeight="325" Height="364" WindowStartupLocation="CenterScreen" x:Name="Window">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <Converter:SizeConverter x:Key="SizeConverter" />
