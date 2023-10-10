@@ -6,22 +6,25 @@ class CueTime : IComparable {
     [ValidateRange(0, 3921501716349819)][Int64]$TotalFrames = 0
     hidden $_init = $(
         $this | Add-member ScriptProperty 'Minutes' {
-            [Math]::floor($this.TotalFrames / 4500)
+            [uint64]([Math]::floor($this.TotalFrames / 4500))
         };
         $this | Add-member ScriptProperty 'Seconds' {
-            [Math]::floor(($this.TotalFrames % 4500) / 75)
+            [Byte]([Math]::floor(($this.TotalFrames % 4500) / 75))
         };
         $this | Add-member ScriptProperty 'Frames' {
-            [Math]::floor($this.TotalFrames % 75)
+            [Byte]([Math]::floor($this.TotalFrames % 75))
         };
         $this | Add-member ScriptProperty 'TotalBytes' {
-            $this.TotalFrames * 2352
+            [uint64]($this.TotalFrames * 2352)
         } 
     )
     #endregion Definition
     #region Constructors
     CueTime() {}
 
+    CueTime([SByte]$TotalFrames) {
+        $this.TotalFrames = $TotalFrames
+    }
     CueTime([int16]$TotalFrames) {
         $this.TotalFrames = $TotalFrames
     }
@@ -29,6 +32,9 @@ class CueTime : IComparable {
         $this.TotalFrames = $TotalFrames
     }
     CueTime([int64]$TotalFrames) {
+        $this.TotalFrames = $TotalFrames
+    }
+    CueTime([Byte]$TotalFrames) {
         $this.TotalFrames = $TotalFrames
     }
     CueTime([uint16]$TotalFrames) {
@@ -41,6 +47,9 @@ class CueTime : IComparable {
         $this.TotalFrames = $TotalFrames
     }
     CueTime([double]$TotalFrames) {
+        $this.TotalFrames = $TotalFrames
+    }
+    CueTime([float]$TotalFrames) {
         $this.TotalFrames = $TotalFrames
     }
 
@@ -69,7 +78,7 @@ class CueTime : IComparable {
         return $this.TotalFrames.CompareTo($other.TotalFrames)
     }
     [string]ToString() {
-        return ('{0:d2}' -f [Int64]$this.Minutes), ('{0:d2}' -f [int]$this.Seconds), ('{0:d2}' -f [int]$this.Frames) -join ':'
+        return ('{0:d2}' -f $this.Minutes), ('{0:d2}' -f $this.Seconds), ('{0:d2}' -f $this.Frames) -join ':'
     }
     static [CueTime]op_Addition([CueTime]$a, [CueTime]$b) {
         return $a.TotalFrames + $b.TotalFrames
@@ -103,7 +112,7 @@ class CueTime : IComparable {
 }
 class CueIndex {
     #region Definition
-    [Int16]$Number
+    [Byte]$Number
     [CueTime]$Offset
     #endregion Definition
     #region Constructors
@@ -111,13 +120,13 @@ class CueIndex {
     #endregion Constructors
     #Region Methods
     [string]ToString() {
-        return -join $this.Number, $this.Offset
+        return -join ('{0:d2}' -f $this.Number), $this.Offset
     }
     #endregion Methods    
 }
 class CueTrack {
     #region Definition
-    [Int16]$Number
+    [Byte]$Number
     [ValidateSet('AUDIO', 'CDG', 'MODE1/2048', 'MODE1/2352', 'MODE2/2048', 'MODE2/2324', 'MODE2/2336', 'MODE2/2352', 'CDI/2336', 'CDI/2352')][String]$DataType
     [ValidateSet('DCP', '4CH', 'PRE', 'SCMS', 'DATA')][String[]]$Flags
     [ValidatePattern('^[a-zA-Z0-9]{5}\d{7}$|^$')][String]$ISRC
@@ -133,7 +142,7 @@ class CueTrack {
     #endregion Constructors
     #Region Methods
     [string]ToString() {
-        return -join $this.Number.ToString(), $this.DataType
+        return -join ('{0:d2}' -f $this.Number), $this.DataType
     }
     #endregion Methods    
 }
@@ -161,7 +170,7 @@ class CueSheet {
     [ValidateLength(0, 80)][string]$Title
     [ValidateLength(0, 80)][string]$Songwriter
     [CueFile[]]$Files
-    [bool]$IsDreamcast
+    hidden [bool]$IsDreamcast
     #endregion Definition
     #region Constructors
 
