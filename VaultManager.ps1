@@ -358,12 +358,12 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                             fileIn = $GUI.Nodes.InputMerge.Text
                         }
                         if ($GUI.Nodes.RadioMerge.IsChecked) {
-                            $Values.add('fileOut', $GUI.Nodes.OutputSplit.Text)
-                            Split-CueBin @Values
-                        }
-                        else {
                             $Values.add('destination', $GUI.Nodes.OutputMerge.Text)
                             Merge-CueBin @Values
+                        }
+                        else {
+                            $Values.add('fileOut', $GUI.Nodes.OutputSplit.Text)
+                            Split-CueBin @Values
                         }
                         continue
                     }
