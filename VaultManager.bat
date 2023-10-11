@@ -50,10 +50,11 @@ if /I "%~8" == "-NoGUI" set _NoGUI=1
 if /I "%~9" == "-NoGUI" set _NoGUI=1
 ::echo %~0
 ::set _remove=%~0
-set _arg=%*
+::set _arg=%*
 ::call set arg=%%_arg:"%_remove%"=%%
 ::call set arg=%%_arg:%_remove%=%%
 ::echo "%b2eincfilepath%\VaultManager.ps1" %arg%
+set arg=%*
 
 
 if %_NoGUI%==1 (

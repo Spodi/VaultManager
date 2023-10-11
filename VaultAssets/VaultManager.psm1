@@ -956,6 +956,8 @@ function Split-CueBin {
         # Folder where to put in the new cuesheet and split files. Won't overwrite existing files.
         [Parameter(Mandatory, Position = 1)] [string]$destination
     )
+    $prevDir = Get-location
+    Set-location (split-path $FileIn)
     $cue = Get-Content -LiteralPath $fileIn -raw | ConvertFrom-Cue
     if (!$cue) { Write-Error "`"$fileIn`" isn't a valid cue file!"; return }
     $allBinary = $cue.Files.FileType | & { Process {
@@ -971,7 +973,7 @@ function Split-CueBin {
     }
 
     ForEach ($File in $cue.Files) {
-        $fileInfo = Get-Item (Join-Path (split-path $FileIn) $file.FileName)
+        $fileInfo = Get-Item $file.FileName
         if (!$fileInfo) { Write-Error "Could not find `"$(Join-Path (split-path $FileIn) $file.FileName)`". Wrong cue sheet or renamed/moved files?"; return }
 
         For ($i = 0; $i -lt $File.Tracks.count; $i++) { 
@@ -1009,7 +1011,9 @@ function Split-CueBin {
             }
         }
     }
-    ConvertTo-Cue $newcue | Out-File ([System.IO.Path]::Combine($destination, [System.IO.Path]::GetFileName($fileIn)))
+    Set-location $prevDir
+    $cuecontent = ConvertTo-Cue $newcue
+    [System.IO.File]::WriteAllLines([System.IO.Path]::Combine($destination, [System.IO.Path]::GetFileName($fileIn)), $cuecontent)
 }
 function Merge-CueBin {
     <#
@@ -1025,6 +1029,8 @@ function Merge-CueBin {
         # New name (and path) for the merged Cue sheet (.bin will get the same name). Won't overwrite existing files.
         [Parameter(Mandatory, Position = 1)] [string]$fileOut
     )
+    $prevDir = Get-location
+    Set-location (split-path $FileIn)
     $destination = [System.IO.Path]::GetDirectoryName($fileOut)
     if (!$destination)
     { $destination = ".\" }
@@ -1047,7 +1053,7 @@ function Merge-CueBin {
             Tracks   = & {
                 ForEach ($File in $cue.Files) {
                     $prevFile += $fileInfo.Length
-                    $fileInfo = Get-Item $file.FileName
+                    $fileInfo = Get-Item (Join-Path (split-path $FileIn) $file.FileName)
                     if (!$fileInfo) { Write-Error "Could not find `"$file`". Wrong cue sheet or renamed/moved files?"; return }
 
                     ForEach ($track in $File.Tracks) {
@@ -1074,7 +1080,9 @@ function Merge-CueBin {
     }
     try { Merge-File $cue.Files.FileName $newName -ErrorAction Stop }
     catch { Write-Host 'Error in Merge-File:'; Write-Error $_; return }
-    ConvertTo-Cue $newcue | Out-File ([System.IO.Path]::Combine($destination, [System.IO.Path]::GetFileName($fileOut)))
+    Set-location $prevDir
+    $cuecontent = ConvertTo-Cue $newcue
+    [System.IO.File]::WriteAllLines([System.IO.Path]::Combine($destination, [System.IO.Path]::GetFileName($fileOut)), $cuecontent)
 }
 #endregion Cue/Bin Tools
 #endregion Functions
