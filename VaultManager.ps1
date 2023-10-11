@@ -8,7 +8,7 @@ $PSScriptRootEsc = $PSScriptRoot -replace '(\?|\*|\[)', '`$1'
 if ($WorkingDir) { Set-Location $WorkingDir }
 
 $host.ui.RawUI.WindowTitle = 'VaultManager Console'
-Import-Module (Join-Path $PSScriptRootEsc '.\VaultManager.psm1') -force
+Import-Module (Join-Path $PSScriptRootEsc '.\VaultAssets\VaultManager.psm1') -force
 
 if ($NoGUI) {
     Write-Host 'Loaded additional functions:'
@@ -97,10 +97,10 @@ $hWnd = [WPIA.ConsoleUtils]::GetConsoleWindow()
 
 
 
-$myType = (Add-Type -LiteralPath (Join-Path $PSScriptRootEsc '.\VaultManager.cs') -ReferencedAssemblies (@('PresentationFramework', 'System.Windows.Forms')) -Passthru).Assembly | Sort-Object -Unique
+$myType = (Add-Type -LiteralPath (Join-Path $PSScriptRootEsc '.\VaultAssets\VaultManager.cs') -ReferencedAssemblies (@('PresentationFramework', 'System.Windows.Forms')) -Passthru).Assembly | Sort-Object -Unique
 
 $GUI = [hashtable]::Synchronized(@{}) #Syncronized in case we want parrallel (async) actions that don't lock up the window.
-[string]$XAML = (Get-Content -Raw -LiteralPath (Join-Path $PSScriptRootEsc '.\VaultManager.xml')) -replace 'mc:Ignorable="d"' -replace '^<Win.*', '<Window' -replace 'CyberOasis.VaultManager;assembly=', "CyberOasis.VaultManager;assembly=$($myType)"
+[string]$XAML = (Get-Content -Raw -LiteralPath (Join-Path $PSScriptRootEsc '.\VaultAssets\VaultManager.xml')) -replace 'mc:Ignorable="d"' -replace '^<Win.*', '<Window' -replace 'CyberOasis.VaultManager;assembly=', "CyberOasis.VaultManager;assembly=$($myType)"
 
 #Light Theme (currently not implemented)
 $LightTheme = (Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name 'AppsUseLightTheme').AppsUseLightTheme
@@ -129,10 +129,10 @@ $GUI.Nodes = $XAML.SelectNodes("//*[@x:Name]", $GUI.NsMgr) | ForEach-Object {
 $defaultinput = join-path (get-location) 'input'
 $defaultoutput = join-path (get-location) 'output'
 $extensionList = @('.3ds', '.7z', '.apk', '.bin', '.bs', '.cdi', '.chd', '.cia', '.CONFIG', '.cue', '.gba', '.gcm', '.gdi', '.ini', '.iso', '.md', '.nsp', '.png', '.ps1', '.rar', '.raw', '.rvz', '.sav', '.sfc', '.smc', '.srm', '.txt', '.url', '.vpk', '.wad', '.wud', '.wux', '.wbf1', '.wbfs', '.webm', '.xci', '.z64', '.zip')
-$GUI.WPF.Icon = (Join-Path $PSScriptRootEsc '.\icon.ico')
+$GUI.WPF.Icon = (Join-Path $PSScriptRootEsc '.\VaultAssets\icon.ico')
 
-$GUI.WPF.TaskbarItemInfo = [System.Windows.Shell.TaskbarItemInfo]@{overlay = (Join-Path $PSScriptRootEsc '.\icon.ico') }
-$GUI.Nodes.MainGrid.Background.ImageSource = (Join-Path $PSScriptRootEsc '.\bg.png')
+$GUI.WPF.TaskbarItemInfo = [System.Windows.Shell.TaskbarItemInfo]@{overlay = (Join-Path $PSScriptRootEsc '.\VaultAssets\icon.ico') }
+$GUI.Nodes.MainGrid.Background.ImageSource = (Join-Path $PSScriptRootEsc '.\VaultAssets\bg.png')
 $GUI.Nodes.ListFolderizeExtWhite.ItemsSource = $extensionList
 $GUI.Nodes.ListFolderizeExtBlack.ItemsSource = $extensionList
 $GUI.Nodes.FolderizeInput.Text = $defaultinput

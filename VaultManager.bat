@@ -49,16 +49,16 @@ if /I "%~7" == "-NoGUI" set _NoGUI=1
 if /I "%~8" == "-NoGUI" set _NoGUI=1
 if /I "%~9" == "-NoGUI" set _NoGUI=1
 ::echo %~0
-set _remove=%~0
+::set _remove=%~0
 set _arg=%*
-call set arg=%%_arg:"%_remove%"=%%
-call set arg=%%_arg:%_remove%=%%
+::call set arg=%%_arg:"%_remove%"=%%
+::call set arg=%%_arg:%_remove%=%%
 ::echo "%b2eincfilepath%\VaultManager.ps1" %arg%
 
 
 if %_NoGUI%==1 (
-		call %systemroot%\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -NoExit -File "%b2eincfilepath%\VaultManager.ps1" %arg%
+		call %systemroot%\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -NoExit -File ".\VaultManager.ps1" %arg%
 	) else (
-		call %systemroot%\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -NoLogo -File "%b2eincfilepath%\VaultManager.ps1" %arg%
+		call %systemroot%\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -NoLogo -File ".\VaultManager.ps1" %arg%
 	)
 EXIT /b
