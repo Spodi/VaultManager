@@ -143,7 +143,7 @@ $GUI.Nodes.FolderizeOutput.Text = $defaultoutput
 $GUI.Nodes.Cuegen.Text = $defaultinput
 
 
-#dynamic Taools tab
+#dynamic Tools tab
 try { $tools = Get-Folders -subs '.\Tools' -ErrorAction Stop }
 catch {  }
 if ($tools) {
@@ -153,13 +153,14 @@ if ($tools) {
             $readmepath = [System.IO.Path]::Combine($_, 'Readme.txt')
             $manifestpath = [System.IO.Path]::Combine($_, 'Manifest.json')
 
-            $manifest = [PSCustomObject]@{
-                Path = $_
-            }
+            $manifest = [PSCustomObject]@{}
             
             if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
                 $manifest = Get-Content -raw $manifestpath | ConvertFrom-Json
             }
+
+                $manifest | Add-Member Path $_
+
             If (!$manifest.Name) {
                 $manifest | Add-Member Name (split-path -leaf $_)
             }
@@ -273,7 +274,7 @@ if ($tools) {
 
         } }
 }
-else { Write-Warning "Empty `"Tools`" folder `"$(Resolve-Path '.\Tools')`". The `"MIsc Tools`"-Tab will be empty." }
+else { Write-Warning "Empty `"Tools`" folder `"$(Resolve-Path '.\Tools')`". The `"Misc Tools`"-Tab will be empty." }
 
 #give anything clickable an event
 $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent, [System.Windows.RoutedEventHandler]({
