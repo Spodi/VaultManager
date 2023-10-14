@@ -270,16 +270,16 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
             $object = $_
             if ($object.OriginalSource -is [System.Windows.Controls.Button]) {
                 switch -CaseSensitive -regex ($object.OriginalSource.Name) {
-                    '^OtherStart$' { 
-                        Start-Process explorer.exe $object.OriginalSource.Path
-                        continue
-                    }
-                    '^OtherFolder$' { 
-                        Start-Process explorer.exe $object.OriginalSource.Path
-                        continue
-                    }
-                    '^OtherReadme$' { 
-                        Start-Process explorer.exe $object.OriginalSource.Path
+                    '^MiscOpenButton$' {
+                        if (Test-Path -PathType Leaf $object.OriginalSource.Path) {
+                            $AppStart = Resolve-Path $object.OriginalSource.Path
+                            $AppWorkingDir = Resolve-Path (Split-Path $object.OriginalSource.Path)
+                        }
+                        else {
+                            $AppStart = Resolve-Path ($object.OriginalSource.Path + '\') #Safeguard against executing "Folder.cmd" instead of opening "Folder"
+                            $AppWorkingDir = Resolve-Path $object.OriginalSource.Path
+                        }
+                        Start-Process $AppStart -WorkingDirectory $AppWorkingDir
                         continue
                     }
                     '^SaveFile_' {
