@@ -8,18 +8,72 @@
     mc:Ignorable="d"
     Title="Vault Manager"
     Background="#FF141414" Foreground="White" MinWidth="405" Width="583" MinHeight="325" Height="364" WindowStartupLocation="CenterScreen" x:Name="Window">
+
+
     <Window.Resources>
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-        <Converter:SizeConverter x:Key="SizeConverter" />
-        <LinearGradientBrush x:Key="HeaderLabelBackground" EndPoint="0.5,1" StartPoint="0.5,0">
-            <GradientStop Color="#00000000" />
-            <GradientStop Color="#00000000" Offset="1" />
-            <GradientStop Color="#7FFF00FF" Offset="0.5" />
-        </LinearGradientBrush>
-        <LinearGradientBrush x:Key="TabItemBackground1" EndPoint="0,1">
-            <GradientStop Color="#FF454545" />
-            <GradientStop Color="#FF141414" Offset="1" />
-        </LinearGradientBrush>
+        <ResourceDictionary>
+
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+            <Converter:SizeConverter x:Key="SizeConverter" />
+            <LinearGradientBrush
+                x:Key="HeaderLabelBackground" EndPoint="0.5,1" StartPoint="0.5,0">
+                <GradientStop Color="#00000000" />
+                <GradientStop Color="#00000000" Offset="1" />
+                <GradientStop Color="#7FFF00FF" Offset="0.5" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="TabItemBackground1" EndPoint="0,1">
+                <GradientStop Color="#FF454545" />
+                <GradientStop Color="#FF141414" Offset="1" />
+            </LinearGradientBrush>
+
+            <Style x:Key="CategoryBorder" TargetType="{x:Type Border}">
+                <Setter Property="Margin" Value="0,0,6,6" />
+                <Setter Property="BorderThickness" Value="1" />
+            </Style>
+            <Style x:Key="CategoryInnerBorder" TargetType="{x:Type Border}">
+                <Setter Property="Margin" Value="3,3,0,0" />
+            </Style>
+            <Style x:Key="CategoryLabel" TargetType="{x:Type Label}">
+                <Setter Property="FontSize" Value="16" />
+                <Setter Property="FontWeight" Value="Bold" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+            </Style>
+            <Style x:Key="CardOuterBorder" TargetType="{x:Type Border}">
+                <Setter Property="Margin" Value="0,0,3,4" />
+                <Setter Property="BorderThickness" Value="1" />
+            </Style>
+            <Style x:Key="CardInnerBorder" TargetType="{x:Type Border}">
+                <Setter Property="BorderThickness" Value="1" />
+            </Style>
+            <Style x:Key="CardButtonPanel" TargetType="{x:Type Grid}">
+                <Setter Property="MinWidth" Value="156" />
+            </Style>
+            <Style x:Key="MiscOpenButton" TargetType="{x:Type Button}">
+                <Setter Property="Width" Value="50" />
+            </Style>
+
+            <!-- Edit colors here -->
+            
+
+            <Style x:Key="UtilitiesCategoryBorder" TargetType="{x:Type Border}" BasedOn="{StaticResource CategoryBorder}">
+                <Setter Property="Background" Value="#33000000" />
+                <Setter Property="BorderBrush" Value="#99CC00CC" />
+            </Style>
+            <Style x:Key="UtilitiesCategoryLabel" TargetType="{x:Type Label}" BasedOn="{StaticResource CategoryLabel}">
+                <Setter Property="Foreground" Value="Yellow" />
+                <Setter Property="Background" Value="#50FF00FF" />
+            </Style>
+            <Style x:Key="UtilitiesCardOuterBorder" TargetType="{x:Type Border}" BasedOn="{StaticResource CardOuterBorder}">
+                <Setter Property="Background" Value="#33000000" />
+                <Setter Property="BorderBrush" Value="#66CC00CC" />
+            </Style>
+            <Style x:Key="UtilitiesAppLabel" TargetType="{x:Type Label}">
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="Background" Value="#33FF00FF" />
+            </Style>
+            <!-- Try not to edit stuff below -->
+
+        </ResourceDictionary>
     </Window.Resources>
 
 

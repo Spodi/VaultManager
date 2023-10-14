@@ -159,7 +159,7 @@ if ($tools) {
                 $manifest = Get-Content -raw $manifestpath | ConvertFrom-Json
             }
 
-                $manifest | Add-Member Path $_
+            $manifest | Add-Member Path $_
 
             If (!$manifest.Name) {
                 $manifest | Add-Member Name (split-path -leaf $_)
@@ -192,24 +192,17 @@ if ($tools) {
             $manifest
         } } | Group-Object Category | & { Process {
             $CategoryBorder = [System.Windows.Controls.Border]@{
-                BorderBrush     = '#99CC00CC'
-                Margin          = '0,0,6,6'
-                BorderThickness = '1'
-                Background      = '#33000000'
+                Style = $GUI.WPF.FindResource("UtilitiesCategoryBorder")
             }
             $CategoryPanel = [System.Windows.Controls.StackPanel]@{
                 Orientation = 'Vertical'
             }
             $CategoryLabel = [System.Windows.Controls.Label]@{
-                Foreground               = 'Yellow'
-                Content                  = $_.Name
-                Background               = '#50FF00FF'
-                FontSize                 = 16
-                FontWeight               = 'Bold'
-                VerticalContentAlignment = 'Center'            
+                Style   = $GUI.WPF.FindResource("UtilitiesCategoryLabel")
+                Content = $_.Name          
             }
             $CategoryInnerBorder = [System.Windows.Controls.Border]@{
-                Padding = '3,3,0,0'  
+                Style = $GUI.WPF.FindResource("CategoryInnerBorder") 
             }
             $CategoryInnerPanel = [System.Windows.Controls.WrapPanel]@{
                 Orientation = 'Horizontal'
@@ -222,44 +215,40 @@ if ($tools) {
             $_.Group | & { Process {
                     # in CategoryInnerPanel
                     $AppOuterBorder = [System.Windows.Controls.Border]@{
-                        BorderBrush     = '#66CC00CC'
-                        Margin          = '0,0,3,4'
-                        BorderThickness = '1'
-                        Background      = '#33000000'
+                        Style = $GUI.WPF.FindResource("UtilitiesCardOuterBorder")
                     }
                     $AppPanel = [System.Windows.Controls.StackPanel]@{
                         Orientation = 'Vertical'
                     } 
                     $AppLabel = [System.Windows.Controls.Label]@{
-                        Foreground = 'White'
-                        Content    = $_.Name
-                        Background = '#33FF00FF'
+                        Style   = $GUI.WPF.FindResource("UtilitiesAppLabel")
+                        Content = $_.Name
                     }
                     $AppInnerBorder = [System.Windows.Controls.Border]@{
-                        Padding = '3,3,3,3'  
+                        Style = $GUI.WPF.FindResource("CardInnerBorder")  
                     }
                     $AppButtonPanel = [System.Windows.Controls.Grid]@{
-                        MinWidth = '156'
+                        Style = $GUI.WPF.FindResource("CardButtonPanel")
                     }
                     If ($_.Start) {
                         $AppButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
+                                        Style               = $GUI.WPF.FindResource("MiscOpenButton")
+                                        Name                = 'MiscOpenButton'  
                                         Content             = 'Start'
-                                        Name                = 'OtherStart'
-                                        Width               = '50'
                                         HorizontalAlignment = 'Left'
                                     } } | Add-Member -PassThru 'Path' $_.Start)) #feels like this shoudn't be possible. but it is!
                     }
                     $AppButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
+                                    Style               = $GUI.WPF.FindResource("MiscOpenButton")
                                     Content             = 'Folder'
-                                    Name                = 'OtherFolder'
-                                    Width               = '50'
+                                    Name                = 'MiscOpenButton'
                                     HorizontalAlignment = 'Center'
                                 } } | Add-Member -PassThru 'Path' $_.Path))
                     If ($_.Readme) {
                         $AppButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
+                                        Style               = $GUI.WPF.FindResource("MiscOpenButton")
                                         Content             = 'Readme'
-                                        Name                = 'OtherReadme'
-                                        Width               = '50'
+                                        Name                = 'MiscOpenButton'
                                         HorizontalAlignment = 'Right'
                                     } } | Add-Member -PassThru 'Path' $_.Readme))
                     }
