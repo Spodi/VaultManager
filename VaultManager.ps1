@@ -131,8 +131,7 @@ $GUI.Nodes = $XAML.SelectNodes("//*[@x:Name]", $GUI.NsMgr) | ForEach-Object {
 #region Code behind
 $defaultinput = join-path (get-location) 'input'
 $defaultoutput = join-path (get-location) 'output'
-$extensionList = @('.3ds', '.7z', '.apk', '.bin', '.bs', '.cdi', '.chd', '.cia', '.CONFIG', '.cue', '.gba', '.gcm', '.gdi', '.ini', '.iso', '.md', '.nsp', '.png', '.ps1', '.rar', '.raw', '.rvz', '.sav', '.sfc', '.smc', '.srm', '.txt', '.url', '.vpk', '.wad', '.wud', '.wux', '.wbf1', '.wbfs', '.webm', '.xci', '.z64', '.zip')
-$GUI.WPF.Icon = (Join-Path $PSScriptRootEsc '.\VaultAssets\icon.ico')
+$extensionListPath = (Join-Path $PSScriptRootEsc '.\VaultAssets\FileExtensions.json')
 
 $GUI.Nodes.FolderizeInput.Text = $defaultinput
 $GUI.Nodes.InputMerge.Text = join-path $defaultinput 'input.cue'
@@ -141,7 +140,25 @@ $GUI.Nodes.Outputsplit.Text = $defaultoutput
 $GUI.Nodes.FolderizeOutput.Text = $defaultoutput
 $GUI.Nodes.Cuegen.Text = $defaultinput
 
+$extensionList = @()
+if (Test-Path -PathType Leaf -LiteralPath $extensionListPath) {
+    $extensionList = Get-Content -raw $extensionListPath | ConvertFrom-Json
+}
 
+$GUI.Nodes.ListFolderizeExtWhite.ItemsSource = $extensionList
+
+$extensionList2 = $GUI.Nodes.ListFolderizeExtWhite.ItemsSource.ForEach({
+    [Object[]]$out = @($_[0],$true)
+        if ($_.count -gt 0) {
+            if ($_[1]) {
+                [bool]$out[1] = !$_[1]
+            }
+        }
+        Write-Output -NoEnumerate $out
+    }) | ForEach-Object {,@($_)} # Don't ask, I don't know myself...
+
+
+$GUI.Nodes.ListFolderizeExtBlack.ItemsSource = $extensionList2
 #dynamic Tools tab
 try { $tools = Get-Folders -subs '.\Tools' -ErrorAction Stop }
 catch {  }
@@ -326,10 +343,11 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                             Move        = $FolderizeMove
                         }
                         if ($GUI.Nodes.RadioFolderizeWhitelist.IsChecked) {
-                            $Values.add('whitelist', $GUI.Nodes.ListFolderizeExtWhite.SelectedItems) 
+                            $Values.add('whitelist', $GUI.Nodes.ListFolderizeExtWhite.ItemsSource.where({$_[1]}).ForEach({$_[0]}))
                         }
                         elseif ($GUI.Nodes.RadioFolderizeBlacklist.IsChecked) {
-                            $Values.add('blacklist', $GUI.Nodes.ListFolderizeExtBlack.SelectedItems)
+                            $Values.add('blacklist', $GUI.Nodes.ListFolderizeExtBlack.ItemsSource.where({$_[1]}).ForEach({$_[0]}))
+
                         }
                         else {
                             $Values.add('all', $true)
