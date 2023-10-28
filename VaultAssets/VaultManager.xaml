@@ -126,10 +126,32 @@
                                 <Label Content="Extensions:" VerticalAlignment="Top" Padding="0,2,2,2" Foreground="White" VerticalContentAlignment="Center" Grid.Column="1" HorizontalAlignment="Left" Margin="0,0,10,0" Grid.RowSpan="2" />
                                 <ListView x:Name="ListFolderizeExtWhite" Margin="0,20,10,0" SelectionMode="Multiple" Grid.Column="1" Grid.RowSpan="2" MinHeight="75"
                                     MaxHeight="{Binding ActualHeight, ConverterParameter=250, Converter={StaticResource SizeConverter}, ElementName=Window, Mode=OneWay}"
-                                    Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioFolderizeWhitelist}" />
+                                    Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioFolderizeWhitelist}">
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Path=[0]}" />
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="{x:Type ListBoxItem}">
+                                            <Setter Property="IsSelected" Value="{Binding Mode=TwoWay, Path=[1], UpdateSourceTrigger=PropertyChanged}" />
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                </ListView>
                                 <ListView x:Name="ListFolderizeExtBlack" Margin="0,20,10,0" SelectionMode="Multiple" Grid.Column="1" Grid.RowSpan="2" MinHeight="75"
                                     MaxHeight="{Binding ActualHeight, ConverterParameter=250, Converter={StaticResource SizeConverter}, ElementName=Window, Mode=OneWay}"
-                                    Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioFolderizeBlacklist}" />
+                                    Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioFolderizeBlacklist}">
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Path=[0]}" />
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="{x:Type ListBoxItem}">
+                                            <Setter Property="IsSelected" Value="{Binding Mode=TwoWay, Path=[1], UpdateSourceTrigger=PropertyChanged}" />
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                </ListView>
 
 
                                 <Label Content="Extensions Mode:" VerticalAlignment="Top" Padding="2,2,2,2" Height="20" Foreground="White" VerticalContentAlignment="Center" Margin="10,0,0,0" Grid.RowSpan="2" Grid.Row="1" />

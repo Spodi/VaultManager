@@ -235,6 +235,7 @@ if ($tools) {
                                         Name                = 'MiscOpenButton'  
                                         Content             = 'Start'
                                         HorizontalAlignment = 'Left'
+                                        Tooltip             = $_.Start.tostring()
                                     } } | Add-Member -PassThru 'Path' $_.Start)) #feels like this shoudn't be possible. but it is!
                     }
                     $AppButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
@@ -242,6 +243,7 @@ if ($tools) {
                                     Content             = 'Folder'
                                     Name                = 'MiscOpenButton'
                                     HorizontalAlignment = 'Center'
+                                    Tooltip             = $_.Path.tostring()
                                 } } | Add-Member -PassThru 'Path' $_.Path))
                     If ($_.Readme) {
                         $AppButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
@@ -249,6 +251,7 @@ if ($tools) {
                                         Content             = 'Readme'
                                         Name                = 'MiscOpenButton'
                                         HorizontalAlignment = 'Right'
+                                        Tooltip             = $_.Readme.tostring()
                                     } } | Add-Member -PassThru 'Path' $_.Readme))
                     }
                     $AppPanel.AddChild($AppLabel)
