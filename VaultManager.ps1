@@ -100,7 +100,10 @@ $hWnd = [WPIA.ConsoleUtils]::GetConsoleWindow()
 $myType = (Add-Type -LiteralPath (Join-Path $PSScriptRootEsc '.\VaultAssets\VaultManager.cs') -ReferencedAssemblies (@('PresentationFramework', 'System.Windows.Forms')) -Passthru).Assembly | Sort-Object -Unique
 
 $GUI = [hashtable]::Synchronized(@{}) #Syncronized in case we want parrallel (async) actions that don't lock up the window.
-[string]$XAML = (Get-Content -Raw -LiteralPath (Join-Path $PSScriptRootEsc '.\VaultAssets\VaultManager.xml')) -replace 'mc:Ignorable="d"' -replace '^<Win.*', '<Window' -replace 'CyberOasis.VaultManager;assembly=', "CyberOasis.VaultManager;assembly=$($myType)"
+[string]$XAML = (Get-Content -Raw -LiteralPath (Join-Path $PSScriptRootEsc '.\VaultAssets\VaultManager.xaml')) -replace 'mc:Ignorable="d"' -replace '^<Win.*', '<Window' # Tis is needed for WPF in PS
+[string]$XAML = $XAML -replace '"\/(.*)"', "`"$($PSScriptRoot+'\VaultAssets\')`$1`"" # Hack to make relative paths work for WPF in PS
+[string]$XAML = $XAML -replace 'CyberOasis.VaultManager;assembly=', "CyberOasis.VaultManager;assembly=$($myType)" # to make our converter and folder select window work
+
 
 #Light Theme (currently not implemented)
 $LightTheme = (Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' -Name 'AppsUseLightTheme').AppsUseLightTheme
@@ -131,10 +134,6 @@ $defaultoutput = join-path (get-location) 'output'
 $extensionList = @('.3ds', '.7z', '.apk', '.bin', '.bs', '.cdi', '.chd', '.cia', '.CONFIG', '.cue', '.gba', '.gcm', '.gdi', '.ini', '.iso', '.md', '.nsp', '.png', '.ps1', '.rar', '.raw', '.rvz', '.sav', '.sfc', '.smc', '.srm', '.txt', '.url', '.vpk', '.wad', '.wud', '.wux', '.wbf1', '.wbfs', '.webm', '.xci', '.z64', '.zip')
 $GUI.WPF.Icon = (Join-Path $PSScriptRootEsc '.\VaultAssets\icon.ico')
 
-$GUI.WPF.TaskbarItemInfo = [System.Windows.Shell.TaskbarItemInfo]@{overlay = (Join-Path $PSScriptRootEsc '.\VaultAssets\icon.ico') }
-$GUI.Nodes.MainGrid.Background.ImageSource = (Join-Path $PSScriptRootEsc '.\VaultAssets\bg.png')
-$GUI.Nodes.ListFolderizeExtWhite.ItemsSource = $extensionList
-$GUI.Nodes.ListFolderizeExtBlack.ItemsSource = $extensionList
 $GUI.Nodes.FolderizeInput.Text = $defaultinput
 $GUI.Nodes.InputMerge.Text = join-path $defaultinput 'input.cue'
 $GUI.Nodes.OutputMerge.Text = join-path $defaultoutput 'Merged.cue'

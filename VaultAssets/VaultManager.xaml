@@ -7,8 +7,10 @@
     xmlns:Converter="clr-namespace:CyberOasis.VaultManager;assembly="
     mc:Ignorable="d"
     Title="Vault Manager"
-    Background="#FF141414" Foreground="White" MinWidth="405" Width="583" MinHeight="325" Height="364" WindowStartupLocation="CenterScreen" x:Name="Window">
-
+    Background="#FF141414" Foreground="White" MinWidth="405" Width="583" MinHeight="325" Height="364" WindowStartupLocation="CenterScreen" x:Name="Window" Icon="/icon.ico">
+    <Window.TaskbarItemInfo>
+        <TaskbarItemInfo Overlay="/icon.ico" />
+    </Window.TaskbarItemInfo>
 
     <Window.Resources>
         <ResourceDictionary>
@@ -79,7 +81,7 @@
 
     <Grid x:Name="MainGrid">
         <Grid.Background>
-            <ImageBrush Stretch="UniformToFill" />
+            <ImageBrush Stretch="UniformToFill" ImageSource="/bg.png" />
         </Grid.Background>
         <TabControl x:Name="Tabs" Background="#CC141414" Foreground="White">
             <TabItem Header="Un- / Folderize" Margin="-2,-2,-2,0" Foreground="DarkGray" Background="{DynamicResource TabItemBackground1}">
