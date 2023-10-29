@@ -17,12 +17,7 @@
 
             <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
             <Converter:SizeConverter x:Key="SizeConverter" />
-            <LinearGradientBrush
-                x:Key="HeaderLabelBackground" EndPoint="0.5,1" StartPoint="0.5,0">
-                <GradientStop Color="#00000000" />
-                <GradientStop Color="#00000000" Offset="1" />
-                <GradientStop Color="#7FFF00FF" Offset="0.5" />
-            </LinearGradientBrush>
+
             <LinearGradientBrush x:Key="TabItemBackground1" EndPoint="0,1">
                 <GradientStop Color="#FF454545" />
                 <GradientStop Color="#FF141414" Offset="1" />
@@ -54,30 +49,35 @@
                 <Setter Property="Width" Value="50" />
             </Style>
 
-            <!-- Edit colors here -->
-            
 
+            <!-- Edit colors here -->
+            <LinearGradientBrush
+                x:Key="HeaderLabelBackground" EndPoint="0.5,1" StartPoint="0.5,0">
+                <GradientStop Color="#00000000" />
+                <GradientStop Color="#00000000" Offset="1" />
+                <GradientStop Color="#7FFF00FF" Offset="0.5" />
+            </LinearGradientBrush>
             <Style x:Key="UtilitiesCategoryBorder" TargetType="{x:Type Border}" BasedOn="{StaticResource CategoryBorder}">
-                <Setter Property="Background" Value="#33000000" />
-                <Setter Property="BorderBrush" Value="#99CC00CC" />
+                <Setter Property="Background" Value="#191970" />
+                <Setter Property="BorderBrush" Value="White" />
             </Style>
             <Style x:Key="UtilitiesCategoryLabel" TargetType="{x:Type Label}" BasedOn="{StaticResource CategoryLabel}">
-                <Setter Property="Foreground" Value="Yellow" />
-                <Setter Property="Background" Value="#50FF00FF" />
+                <Setter Property="Foreground" Value="Green" />
+                <Setter Property="Background" Value="Black" />
             </Style>
             <Style x:Key="UtilitiesCardOuterBorder" TargetType="{x:Type Border}" BasedOn="{StaticResource CardOuterBorder}">
-                <Setter Property="Background" Value="#33000000" />
-                <Setter Property="BorderBrush" Value="#66CC00CC" />
+                <Setter Property="Background" Value="#6082B6" />
+                <Setter Property="BorderBrush" Value="Black" />
             </Style>
             <Style x:Key="UtilitiesAppLabel" TargetType="{x:Type Label}">
-                <Setter Property="Foreground" Value="White" />
-                <Setter Property="Background" Value="#33FF00FF" />
+                <Setter Property="Foreground" Value="Orange" />
+                <Setter Property="Background" Value="#36454F" />
             </Style>
             <!-- Try not to edit stuff below -->
 
+
         </ResourceDictionary>
     </Window.Resources>
-
 
     <Grid x:Name="MainGrid">
         <Grid.Background>
