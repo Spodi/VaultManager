@@ -401,3 +401,5 @@ compiled/
 Tools/
 Bat_To_Exe_Converter_x64.exe
 settings
+*.cue
+VaultManager.7z
