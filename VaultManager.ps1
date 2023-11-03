@@ -140,25 +140,30 @@ $GUI.Nodes.Outputsplit.Text = $defaultoutput
 $GUI.Nodes.FolderizeOutput.Text = $defaultoutput
 $GUI.Nodes.Cuegen.Text = $defaultinput
 
-$extensionList = @()
+$extensionListW = @()
 if (Test-Path -PathType Leaf -LiteralPath $extensionListPath) {
-    $extensionList = Get-Content -raw $extensionListPath | ConvertFrom-Json
+    $extensionListW = Get-Content -raw $extensionListPath | ConvertFrom-Json
 }
 
-$GUI.Nodes.ListFolderizeExtWhite.ItemsSource = $extensionList
-
-$extensionList2 = $GUI.Nodes.ListFolderizeExtWhite.ItemsSource.ForEach({
-    [Object[]]$out = @($_[0],$true)
+$GUI.Nodes.ListFolderizeExtWhite.ItemsSource = $extensionListW
+$extensionListB = $GUI.Nodes.ListFolderizeExtWhite.ItemsSource.ForEach({
+        [Object[]]$out = @($_[0], $true)
         if ($_.count -gt 0) {
             if ($_[1]) {
                 [bool]$out[1] = !$_[1]
             }
         }
         Write-Output -NoEnumerate $out
-    }) | ForEach-Object {,@($_)} # Don't ask, I don't know myself...
+    }) | ForEach-Object { , @($_) } # Don't ask, I don't know myself...
+$GUI.Nodes.ListFolderizeExtBlack.ItemsSource = $extensionListB
+
+$RegexW = $GUI.Nodes.ListFolderizeExtWhite.ItemsSource.where({ $_[1] }).ForEach({ ($_[0] -replace '(\\|\^|\$|\.|\||\?|\*|\+|\(|\)|\[\{)', '\$1') + '$' }) -join '|'
+$GUI.Nodes.FolderizeRegexWhite.Text = $RegexW
+$RegexB = $GUI.Nodes.ListFolderizeExtBlack.ItemsSource.where({ $_[1] }).ForEach({ ($_[0] -replace '(\\|\^|\$|\.|\||\?|\*|\+|\(|\)|\[\{)', '\$1') + '$' }) -join '|'
+$GUI.Nodes.FolderizeRegexBlack.Text = $RegexB
+$RegexB | out-host
 
 
-$GUI.Nodes.ListFolderizeExtBlack.ItemsSource = $extensionList2
 #dynamic Tools tab
 try { $tools = Get-Folders -subs '.\Tools' -ErrorAction Stop }
 catch {  }
@@ -341,12 +346,23 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                             Source      = $GUI.Nodes.FolderizeInput.Text
                             Destination = $GUI.Nodes.FolderizeOutput.Text
                             Move        = $GUI.Nodes.FolderizeMove.IsChecked
+                            RegEx       = $GUI.Nodes.FolderizeRegex.IsChecked
                         }
                         if ($GUI.Nodes.RadioFolderizeWhitelist.IsChecked) {
-                            $Values.add('whitelist', $GUI.Nodes.ListFolderizeExtWhite.ItemsSource.where({$_[1]}).ForEach({$_[0]}))
+                            if ($GUI.Nodes.FolderizeRegex.IsChecked) {
+                                $Values.add('whitelist', $GUI.Nodes.FolderizeRegexWhite)
+                            }
+                            else {
+                                $Values.add('whitelist', $GUI.Nodes.ListFolderizeExtWhite.ItemsSource.where({ $_[1] }).ForEach({ $_[0] }))
+                            }
                         }
                         elseif ($GUI.Nodes.RadioFolderizeBlacklist.IsChecked) {
-                            $Values.add('blacklist', $GUI.Nodes.ListFolderizeExtBlack.ItemsSource.where({$_[1]}).ForEach({$_[0]}))
+                            if ($GUI.Nodes.FolderizeRegex.IsChecked) {
+                                $Values.add('whitelist', $GUI.Nodes.FolderizeRegexBlack)
+                            }
+                            else {
+                                $Values.add('blacklist', $GUI.Nodes.ListFolderizeExtBlack.ItemsSource.where({ $_[1] }).ForEach({ $_[0] }))
+                            }
 
                         }
                         else {

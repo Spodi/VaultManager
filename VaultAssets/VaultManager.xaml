@@ -123,10 +123,28 @@
                                 <CheckBox x:Name="FolderizeEmptyFolders" Content="remove empty folders in input" HorizontalAlignment="Left" Foreground="White" IsChecked="False" Height="20" VerticalContentAlignment="Center" VerticalAlignment="Center"
                                     Margin="10,25,0,10" IsEnabled="{Binding IsChecked, ElementName=FolderizeMove}" />
 
-                                <Label Content="Extensions:" VerticalAlignment="Top" Padding="0,2,2,2" Foreground="White" VerticalContentAlignment="Center" Grid.Column="1" HorizontalAlignment="Left" Margin="0,0,10,0" Grid.RowSpan="2" />
+                                <Label Content="Whitelist:" VerticalAlignment="Top" Padding="0,2,2,2" Foreground="White" VerticalContentAlignment="Center" Grid.Column="1" HorizontalAlignment="Left" Margin="0,0,10,0" Grid.RowSpan="2"
+                                    Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioFolderizeWhitelist}" />
+                                <Label Content="Blacklist:" VerticalAlignment="Top" Padding="0,2,2,2" Foreground="White" VerticalContentAlignment="Center" Grid.Column="1" HorizontalAlignment="Left" Margin="0,0,10,0" Grid.RowSpan="2"
+                                    Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioFolderizeBlacklist}" />
+                                <CheckBox x:Name="FolderizeRegex" Content="Use RegEx instead" HorizontalAlignment="Left" Padding="0,2,2,2" Margin="80,0,10,0" VerticalAlignment="Top" VerticalContentAlignment="Center" Grid.Column="1" Foreground="White"
+                                    Height="20" Grid.RowSpan="2" />
                                 <ListView x:Name="ListFolderizeExtWhite" Margin="0,20,10,0" SelectionMode="Multiple" Grid.Column="1" Grid.RowSpan="2" MinHeight="75"
-                                    MaxHeight="{Binding ActualHeight, ConverterParameter=250, Converter={StaticResource SizeConverter}, ElementName=Window, Mode=OneWay}"
-                                    Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioFolderizeWhitelist}">
+                                    MaxHeight="{Binding ActualHeight, ConverterParameter=250, Converter={StaticResource SizeConverter}, ElementName=Window, Mode=OneWay}">
+                                    <ListView.Style>
+                                        <Style>
+                                            <Setter Property="Control.Visibility" Value="Hidden" />
+                                            <Style.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding IsChecked, ElementName=RadioFolderizeWhitelist}" Value="true" />
+                                                        <Condition Binding="{Binding IsChecked, ElementName=FolderizeRegex}" Value="false" />
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Control.Visibility" Value="Visible" />
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ListView.Style>
                                     <ListView.ItemTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding Path=[0]}" />
@@ -139,8 +157,21 @@
                                     </ListBox.ItemContainerStyle>
                                 </ListView>
                                 <ListView x:Name="ListFolderizeExtBlack" Margin="0,20,10,0" SelectionMode="Multiple" Grid.Column="1" Grid.RowSpan="2" MinHeight="75"
-                                    MaxHeight="{Binding ActualHeight, ConverterParameter=250, Converter={StaticResource SizeConverter}, ElementName=Window, Mode=OneWay}"
-                                    Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioFolderizeBlacklist}">
+                                    MaxHeight="{Binding ActualHeight, ConverterParameter=250, Converter={StaticResource SizeConverter}, ElementName=Window, Mode=OneWay}">
+                                    <ListView.Style>
+                                        <Style>
+                                            <Setter Property="Control.Visibility" Value="Hidden" />
+                                            <Style.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding IsChecked, ElementName=RadioFolderizeBlacklist}" Value="true" />
+                                                        <Condition Binding="{Binding IsChecked, ElementName=FolderizeRegex}" Value="false" />
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Control.Visibility" Value="Visible" />
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ListView.Style>
                                     <ListView.ItemTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding Path=[0]}" />
@@ -153,6 +184,41 @@
                                     </ListBox.ItemContainerStyle>
                                 </ListView>
 
+                                <TextBox x:Name="FolderizeRegexWhite" Margin="0,20,10,0" Grid.Column="1" Grid.RowSpan="2" MinHeight="75"
+                                    MaxHeight="{Binding ActualHeight, ConverterParameter=250, Converter={StaticResource SizeConverter}, ElementName=Window, Mode=OneWay}" TextWrapping="Wrap">
+                                    <TextBox.Style>
+                                        <Style>
+                                            <Setter Property="Control.Visibility" Value="Hidden" />
+                                            <Style.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding IsChecked, ElementName=RadioFolderizeWhitelist}" Value="true" />
+                                                        <Condition Binding="{Binding IsChecked, ElementName=FolderizeRegex}" Value="true" />
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Control.Visibility" Value="Visible" />
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
+                                <TextBox x:Name="FolderizeRegexBlack" Margin="0,20,10,0" Grid.Column="1" Grid.RowSpan="2" MinHeight="75"
+                                    MaxHeight="{Binding ActualHeight, ConverterParameter=250, Converter={StaticResource SizeConverter}, ElementName=Window, Mode=OneWay}" TextWrapping="Wrap">
+                                    <TextBox.Style>
+                                        <Style>
+                                            <Setter Property="Control.Visibility" Value="Hidden" />
+                                            <Style.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding IsChecked, ElementName=RadioFolderizeBlacklist}" Value="true" />
+                                                        <Condition Binding="{Binding IsChecked, ElementName=FolderizeRegex}" Value="true" />
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Control.Visibility" Value="Visible" />
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
+
 
                                 <Label Content="Extensions Mode:" VerticalAlignment="Top" Padding="2,2,2,2" Height="20" Foreground="White" VerticalContentAlignment="Center" Margin="10,0,0,0" Grid.RowSpan="2" Grid.Row="1" />
                                 <RadioButton x:Name="RadioFolderizeWhitelist" Content="Whitelist" HorizontalAlignment="Left" Margin="10,20,0,0" Foreground="White" IsChecked="True" GroupName="ExtensionsMode" Width="70" Height="20"
@@ -161,7 +227,6 @@
                                     VerticalContentAlignment="Center" Grid.Row="1" />
                                 <RadioButton x:Name="RadioFolderizeAll" Content="All" HorizontalAlignment="Left" Margin="160,20,0,0" VerticalAlignment="Top" Foreground="White" GroupName="ExtensionsMode" Width="70" Height="20"
                                     VerticalContentAlignment="Center" Grid.Row="1" />
-
                             </Grid>
                         </Expander>
                     </Grid>
