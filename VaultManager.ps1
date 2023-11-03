@@ -340,7 +340,7 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                         $Values = @{
                             Source      = $GUI.Nodes.FolderizeInput.Text
                             Destination = $GUI.Nodes.FolderizeOutput.Text
-                            Move        = $FolderizeMove
+                            Move        = $GUI.Nodes.FolderizeMove.IsChecked
                         }
                         if ($GUI.Nodes.RadioFolderizeWhitelist.IsChecked) {
                             $Values.add('whitelist', $GUI.Nodes.ListFolderizeExtWhite.ItemsSource.where({$_[1]}).ForEach({$_[0]}))
@@ -358,7 +358,7 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                         else {
                             UnFolderize @Values
                         }
-                        if ($FolderizeMove -and $FolderizeEmptyFolders) {
+                        if ($GUI.Nodes.FolderizeMove.IsChecked -and $GUI.Nodes.FolderizeEmptyFolders.IsChecked) {
                             Remove-EmptyFolders $GUI.Nodes.FolderizeInput.Text
                         }
                         continue
