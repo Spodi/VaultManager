@@ -1,7 +1,7 @@
 [
     [
       ".3ds",
-      true
+      false
     ],
     [
       ".7z",
@@ -9,146 +9,146 @@
     ],
     [
       ".apk",
-      true
+      false
     ],
     [
       ".bin",
-      true
+      false
     ],
     [
       ".bs",
-      true
+      false
     ],
     [
       ".cdi",
-      true
+      false
     ],
     [
       ".chd",
-      true
+      false
     ],
     [
       ".cia",
-      true
+      false
     ],
     [
       ".CONFIG",
-      true
+      false
     ],
     [
       ".cue",
-      true
+      false
     ],
     [
       ".gba",
-      true
+      false
     ],
     [
       ".gcm",
-      true
+      false
     ],
     [
       ".gdi",
-      true
+      false
     ],
     [
       ".ini",
-      true
+      false
     ],
     [
       ".iso",
-      true
+      false
     ],
     [
       ".md",
-      true
+      false
     ],
     [
       ".nsp",
-      true
+      false
     ],
     [
       ".png",
-      true
+      false
     ],
     [
       ".ps1",
-      true
+      false
     ],
     [
       ".rar",
-      true
+      false
     ],
     [
       ".raw",
-      true
+      false
     ],
     [
       ".rvz",
-      true
+      false
     ],
     [
       ".sav",
-      true
+      false
     ],
     [
       ".sfc",
-      true
+      false
     ],
     [
       ".smc",
-      true
+      false
     ],
     [
       ".srm",
-      true
+      false
     ],
     [
       ".txt",
-      true
+      false
     ],
     [
       ".url",
-      true
+      false
     ],
     [
       ".vpk",
-      true
+      false
     ],
     [
       ".wad",
-      true
+      false
     ],
     [
       ".wud",
-      true
+      false
     ],
     [
       ".wux",
-      true
+      false
     ],
     [
       ".wbf1",
-      true
+      false
     ],
     [
       ".wbfs",
-      true
+      false
     ],
     [
       ".webm",
-      true
+      false
     ],
     [
       ".xci",
-      true
+      false
     ],
     [
       ".z64",
-      true
+      false
     ],
     [
       ".zip",
-      true
+      false
     ]
   ]
