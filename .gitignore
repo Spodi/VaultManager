@@ -399,6 +399,7 @@ FodyWeavers.xsd
 
 compiled/
 Tools/
+AddOns/
 Bat_To_Exe_Converter_x64.exe
 settings
 *.cue

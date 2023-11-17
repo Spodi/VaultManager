@@ -223,7 +223,8 @@ function Get-Folders {
     #>
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory, ValueFromPipeline)]  [string] $path
+        [Parameter(Mandatory, ValueFromPipeline)]  [string] $path,
+        [Parameter()]  [string] $recurse
     )
     begin {
         $prevDir = [System.IO.Directory]::GetCurrentDirectory()
@@ -233,7 +234,9 @@ function Get-Folders {
         [System.IO.Directory]::EnumerateDirectories($path) | & { process {
                 if ($_) {
                     Write-Output $_
-                    Get-Folders $_
+                    if ($recurse) {
+                        Get-Folders $_
+                    }
                 }
             } }
     }
@@ -241,7 +244,7 @@ function Get-Folders {
         [System.IO.Directory]::SetCurrentDirectory($prevDir)
     }
 }
-function Get-Folders {
+function Get-FolderSubs {
     <#
     .SYNOPSIS
     Basically "Get-ChildItem -Directory -recurse", but slightly faster. Gets paths only.
@@ -252,8 +255,7 @@ function Get-Folders {
     #>
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory, ValueFromPipeline)]  [string] $path,
-        [Parameter(Mandatory, ValueFromPipeline)]  [switch] $subs
+        [Parameter(Mandatory, ValueFromPipeline)]  [string] $path
     )
     begin {
         $prevDir = [System.IO.Directory]::GetCurrentDirectory()

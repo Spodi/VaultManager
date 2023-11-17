@@ -90,7 +90,179 @@ $ConsoleMode = @{
     ForceMinimize      = 11
 }
 $hWnd = [WPIA.ConsoleUtils]::GetConsoleWindow()
- 
+
+function New-WPFTab {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory,ValueFromPipelineByPropertyName)]      [string]    $Folder,
+        [Parameter(Mandatory,ValueFromPipelineByPropertyName)]      [string]    $Name,
+        [Parameter(ValueFromPipelineByPropertyName)]               [PSCustomObject[]]    $Buttons = @([PSCustomObject]@{
+                Name = "Start"
+                Path = "./Start.bat"
+            },
+            [PSCustomObject]@{
+                Name = "Folder"
+                Path = "./"
+            },
+            [PSCustomObject]@{
+                Name = "Readme"
+                Path = "./Readme.txt"
+            })
+    )
+
+    try { $tools = Get-FolderSubs $Folder -ErrorAction Stop }
+    catch {  }
+    if ($tools) {
+        $Tab = [System.Windows.Controls.TabItem]@{
+            Header = $Name
+        }
+        $TabScroll = [System.Windows.Controls.ScrollViewer]@{
+            VerticalScrollBarVisibility = "Auto"
+        }
+        $TabGrid = [System.Windows.Controls.Grid]@{
+        }
+        $TabWrap = [System.Windows.Controls.WrapPanel]@{
+        }
+        $tools | & { Process {
+                $categoryPath = [System.IO.Path]::GetDirectoryName($_)
+                $categoryFolder = split-path($categoryPath) -Leaf
+                #$readmepath = [System.IO.Path]::Combine($_, 'Readme.txt')
+                $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
+
+                $Data = [PSCustomObject]@{
+                    Name     = Split-Path $_ -Leaf 
+                    Category = $categoryFolder
+                    Buttons  = $Buttons | ConvertTo-Json -depth 1 | ConvertFrom-Json
+                }
+                $Folder = $_
+                $Data.Buttons.ForEach( { $_.Path = Join-Path $Folder ($_.Path -replace '^\./|^\.\\', '') })
+                Clear-Variable Folder
+            
+                if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
+                    $manifest = Get-Content -raw $manifestpath | ConvertFrom-Json
+                }
+                if ($manifest) {
+                    if ($manifest.Name) {
+                        $Data.Name = $manifest.Name
+                    }
+                    if ($manifest.Category) {
+                        $Data.Category = $manifest.Category
+                    }
+                    if ($manifest.Buttons) {
+                        If ($manifest.Buttons[0]) {
+                            if ($manifest.Buttons[0].Name) {
+                                $Data.Buttons[0].Name = $manifest.Buttons[0].Name
+                            }
+                            if ($manifest.Buttons[0].Path) {
+                                $Data.Buttons[0].Path = Join-Path $_ ($manifest.Buttons[0].Path -replace '^\./|^\.\\', '')
+                            }
+                        }
+                        If ($manifest.Buttons[1]) {
+                            if ($manifest.Buttons[1].Name) {
+                                $Data.Buttons[1].Name = $manifest.Buttons[1].Name
+                            }
+                            if ($manifest.Buttons[1].Path) {
+                                $Data.Buttons[1].Path = Join-Path $_ ($manifest.Buttons[1].Path -replace '^\./|^\.\\', '')
+                            }
+                        }
+                        If ($manifest.Buttons[2]) {
+                            if ($manifest.Buttons[2].Name) {
+                                $Data.Buttons[2].Name = $manifest.Buttons[2].Name
+                            }
+                            if ($manifest.Buttons[2].Path) {
+                                $Data.Buttons[2].Path = Join-Path $_ ($manifest.Buttons[2].Path -replace '^\./|^\.\\', '')
+                            }
+                        }
+                    }
+                }
+                $Data
+            } } | Group-Object Category | & { Process {
+                $CategoryBorder = [System.Windows.Controls.Border]@{
+                    Style = $GUI.WPF.FindResource("UtilitiesCategoryBorder")
+                }
+                $CategoryPanel = [System.Windows.Controls.StackPanel]@{
+                    Orientation = 'Vertical'
+                }
+                $CategoryLabel = [System.Windows.Controls.Label]@{
+                    Style   = $GUI.WPF.FindResource("UtilitiesCategoryLabel")
+                    Content = $_.Name          
+                }
+                $CategoryInnerBorder = [System.Windows.Controls.Border]@{
+                    Style = $GUI.WPF.FindResource("CategoryInnerBorder") 
+                }
+                $CategoryInnerPanel = [System.Windows.Controls.WrapPanel]@{
+                    Orientation = 'Horizontal'
+                }
+                $CategoryBorder.AddChild($CategoryPanel)
+                $CategoryPanel.AddChild($CategoryLabel)
+                $CategoryPanel.AddChild($CategoryInnerBorder)
+                $CategoryInnerBorder.AddChild($CategoryInnerPanel)
+
+                $_.Group | & { Process {
+                        # in CategoryInnerPanel
+                        $AppOuterBorder = [System.Windows.Controls.Border]@{
+                            Style = $GUI.WPF.FindResource("UtilitiesCardOuterBorder")
+                        }
+                        $AppPanel = [System.Windows.Controls.StackPanel]@{
+                            Orientation = 'Vertical'
+                        } 
+                        $AppLabel = [System.Windows.Controls.Label]@{
+                            Style   = $GUI.WPF.FindResource("UtilitiesAppLabel")
+                            Content = $_.Name
+                        }
+                        $AppInnerBorder = [System.Windows.Controls.Border]@{
+                            Style = $GUI.WPF.FindResource("CardInnerBorder")  
+                        }
+                        $AppButtonPanel = [System.Windows.Controls.Grid]@{
+                            Style = $GUI.WPF.FindResource("CardButtonPanel")
+                        }
+
+                        if ($_.Buttons[0] -and (Test-Path $_.Buttons[0].path)) {
+                            $AppButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
+                                            Style               = $GUI.WPF.FindResource("MiscOpenButton")
+                                            Name                = 'MiscOpenButton'  
+                                            Content             = ($_.Buttons[0]).Name
+                                            HorizontalAlignment = 'Left'
+                                            Tooltip             = ($_.Buttons[0]).Path.tostring()
+                                        } } | Add-Member -PassThru 'Path' ($_.Buttons[0]).Path)) #feels like this shoudn't be possible. but it is!
+                        }
+                        if ($_.Buttons[1] -and (Test-Path $_.Buttons[1].path)) {
+                            $AppButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
+                                            Style               = $GUI.WPF.FindResource("MiscOpenButton")
+                                            Content             = ($_.Buttons[1]).Name
+                                            Name                = 'MiscOpenButton'
+                                            HorizontalAlignment = 'Center'
+                                            Tooltip             = ($_.Buttons[1]).Path.tostring()
+                                        } } | Add-Member -PassThru 'Path' ($_.Buttons[1]).Path))
+                        }
+                        if ($_.Buttons[2] -and (Test-Path $_.Buttons[2].path)) {
+                            $AppButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
+                                            Style               = $GUI.WPF.FindResource("MiscOpenButton")
+                                            Content             = ($_.Buttons[2]).Name
+                                            Name                = 'MiscOpenButton'
+                                            HorizontalAlignment = 'Right'
+                                            Tooltip             = ($_.Buttons[2]).Path.tostring()
+                                        } } | Add-Member -PassThru 'Path' ($_.Buttons[2]).Path))
+                        }
+                        $AppPanel.AddChild($AppLabel)
+                        $AppPanel.AddChild($AppInnerBorder)
+                        $AppInnerBorder.AddChild($AppButtonPanel)
+                        $AppOuterBorder.AddChild($AppPanel)
+                        $CategoryInnerPanel.AddChild($AppOuterBorder)
+                       
+                    } }
+                $TabWrap.AddChild($CategoryBorder)
+            } }
+
+        $TabGrid.AddChild($TabWrap)
+        $TabScroll.AddChild($TabGrid)
+        $Tab.AddChild($TabScroll)
+        $GUI.Nodes.Tabs.AddChild($Tab)
+    }
+        
+    else { Write-Warning "Empty or non-existent folder: `"$Folder`". No $Name-Tab will be generated." }
+}
+
 #endregion GUI functions
 
 #region WPF init
@@ -161,133 +333,74 @@ $RegexW = $GUI.Nodes.ListFolderizeExtWhite.ItemsSource.where({ $_[1] }).ForEach(
 $GUI.Nodes.FolderizeRegexWhite.Text = $RegexW
 $RegexB = $GUI.Nodes.ListFolderizeExtBlack.ItemsSource.where({ $_[1] }).ForEach({ ($_[0] -replace '(\\|\^|\$|\.|\||\?|\*|\+|\(|\)|\[\{)', '\$1') + '$' }) -join '|'
 $GUI.Nodes.FolderizeRegexBlack.Text = $RegexB
-$RegexB | out-host
 
-
+$Buttons = @([PSCustomObject]@{
+        Name = "Start"
+        Path = "./Start.bat"
+    },
+    [PSCustomObject]@{
+        Name = "Folder"
+        Path = "./"
+    },
+    [PSCustomObject]@{
+        Name = "Readme"
+        Path = "./Readme.txt"
+    })
 #dynamic Tools tab
-try { $tools = Get-Folders -subs '.\Tools' -ErrorAction Stop }
-catch {  }
-if ($tools) {
-    $tools | & { Process {
-            $categoryPath = [System.IO.Path]::GetDirectoryName($_)
-            $categoryFolder = split-path($categoryPath) -Leaf
-            $readmepath = [System.IO.Path]::Combine($_, 'Readme.txt')
-            $manifestpath = [System.IO.Path]::Combine($_, 'Manifest.json')
+Get-Folders '.\AddOns' | & { Process {
+        $Data = [PSCustomObject]@{
+            Folder  = $_
+            Name    = Split-Path $_ -Leaf 
+            Header  = Split-Path $_ -Leaf
+            Buttons = $Buttons | ConvertTo-Json -depth 1 | ConvertFrom-Json
+        }
 
-            $manifest = [PSCustomObject]@{}
-            
-            if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
-                $manifest = Get-Content -raw $manifestpath | ConvertFrom-Json
+        $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
+
+        if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
+            $manifest = Get-Content -raw $manifestpath | ConvertFrom-Json
+        }
+        if ($manifest) {
+            if ($manifest.Name) {
+                $Data.Name = $manifest.Name
             }
-
-            $manifest | Add-Member Path $_
-
-            If (!$manifest.Name) {
-                $manifest | Add-Member Name (split-path -leaf $_)
+            if ($manifest.Header) {
+                $Data.Header = $manifest.Header
             }
-
-            if ($manifest.Start) { 
-                $manifest.Start = [System.IO.Path]::Combine($_, $manifest.Start)          
-                If (!(Test-Path -PathType Leaf -LiteralPath $Manifest.Start)) {
-                    $manifest | Add-Member Start $null -force
+            if ($manifest.Buttons) {
+                If ($manifest.Buttons[0]) {
+                    if ($manifest.Buttons[0].Name) {
+                        $Data.Buttons[0].Name = $manifest.Buttons[0].Name
+                    }
+                    if ($manifest.Buttons[0].Path) {
+                        $Data.Buttons[0].Path = $manifest.Buttons[0].Path
+                    }
+                }
+                If ($manifest.Buttons[1]) {
+                    if ($manifest.Buttons[1].Name) {
+                        $Data.Buttons[1].Name = $manifest.Buttons[1].Name
+                    }
+                    if ($manifest.Buttons[1].Path) {
+                        $Data.Buttons[1].Path = $manifest.Buttons[1].Path
+                    }
+                }
+                If ($manifest.Buttons[2]) {
+                    if ($manifest.Buttons[2].Name) {
+                        $Data.Buttons[2].Name = $manifest.Buttons[2].Name
+                    }
+                    if ($manifest.Buttons[2].Path) {
+                        $Data.Buttons[2].Path = $manifest.Buttons[2].Path
+                    }
                 }
             }
-            else {
-                $manifest | Add-Member Start $null
-            }
-            if ($manifest.Readme) {
-                $manifest.Readme = [System.IO.Path]::Combine($_, $manifest.Readme)
-                If (!(Test-Path -PathType Leaf -LiteralPath $Manifest.Readme)) {
-                    $manifest | Add-Member Readme $null -force
-                }
-            }
-            else {
-                $manifest | Add-Member Readme $null
-            }
-            if (!($manifest.Readme) -and (Test-Path -PathType Leaf -LiteralPath $readmepath)) {
-                $manifest.Readme = $readmepath
-            }
-            If (!$manifest.Category) {
-                $manifest | Add-Member Category $categoryFolder
-            }
-            $manifest
-        } } | Group-Object Category | & { Process {
-            $CategoryBorder = [System.Windows.Controls.Border]@{
-                Style = $GUI.WPF.FindResource("UtilitiesCategoryBorder")
-            }
-            $CategoryPanel = [System.Windows.Controls.StackPanel]@{
-                Orientation = 'Vertical'
-            }
-            $CategoryLabel = [System.Windows.Controls.Label]@{
-                Style   = $GUI.WPF.FindResource("UtilitiesCategoryLabel")
-                Content = $_.Name          
-            }
-            $CategoryInnerBorder = [System.Windows.Controls.Border]@{
-                Style = $GUI.WPF.FindResource("CategoryInnerBorder") 
-            }
-            $CategoryInnerPanel = [System.Windows.Controls.WrapPanel]@{
-                Orientation = 'Horizontal'
-            }
-            $CategoryBorder.AddChild($CategoryPanel)
-            $CategoryPanel.AddChild($CategoryLabel)
-            $CategoryPanel.AddChild($CategoryInnerBorder)
-            $CategoryInnerBorder.AddChild($CategoryInnerPanel)
+        }
+        $Data | New-WPFTab 
+    } }
 
-            $_.Group | & { Process {
-                    # in CategoryInnerPanel
-                    $AppOuterBorder = [System.Windows.Controls.Border]@{
-                        Style = $GUI.WPF.FindResource("UtilitiesCardOuterBorder")
-                    }
-                    $AppPanel = [System.Windows.Controls.StackPanel]@{
-                        Orientation = 'Vertical'
-                    } 
-                    $AppLabel = [System.Windows.Controls.Label]@{
-                        Style   = $GUI.WPF.FindResource("UtilitiesAppLabel")
-                        Content = $_.Name
-                    }
-                    $AppInnerBorder = [System.Windows.Controls.Border]@{
-                        Style = $GUI.WPF.FindResource("CardInnerBorder")  
-                    }
-                    $AppButtonPanel = [System.Windows.Controls.Grid]@{
-                        Style = $GUI.WPF.FindResource("CardButtonPanel")
-                    }
-                    If ($_.Start) {
-                        $AppButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
-                                        Style               = $GUI.WPF.FindResource("MiscOpenButton")
-                                        Name                = 'MiscOpenButton'  
-                                        Content             = 'Start'
-                                        HorizontalAlignment = 'Left'
-                                        Tooltip             = $_.Start.tostring()
-                                    } } | Add-Member -PassThru 'Path' $_.Start)) #feels like this shoudn't be possible. but it is!
-                    }
-                    $AppButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
-                                    Style               = $GUI.WPF.FindResource("MiscOpenButton")
-                                    Content             = 'Folder'
-                                    Name                = 'MiscOpenButton'
-                                    HorizontalAlignment = 'Center'
-                                    Tooltip             = $_.Path.tostring()
-                                } } | Add-Member -PassThru 'Path' $_.Path))
-                    If ($_.Readme) {
-                        $AppButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
-                                        Style               = $GUI.WPF.FindResource("MiscOpenButton")
-                                        Content             = 'Readme'
-                                        Name                = 'MiscOpenButton'
-                                        HorizontalAlignment = 'Right'
-                                        Tooltip             = $_.Readme.tostring()
-                                    } } | Add-Member -PassThru 'Path' $_.Readme))
-                    }
-                    $AppPanel.AddChild($AppLabel)
-                    $AppPanel.AddChild($AppInnerBorder)
-                    $AppInnerBorder.AddChild($AppButtonPanel)
-                    $AppOuterBorder.AddChild($AppPanel)
-                    $CategoryInnerPanel.AddChild($AppOuterBorder)
-                       
-                } }
-            $GUI.Nodes.OtherStack.AddChild($CategoryBorder) 
 
-        } }
-}
-else { Write-Warning "Empty `"Tools`" folder `"$(Resolve-Path '.\Tools')`". The `"Misc Tools`"-Tab will be empty." }
+#New-WPFTab -Folder './AddOns/Auto' -Name 'Emulators'
+#New-WPFTab -Folder './AddOns/Manifest' -Name 'Portable'
+#New-WPFTab -Folder './AddOns/Installer' -Name 'Installer'
 
 #give anything clickable an event
 $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent, [System.Windows.RoutedEventHandler]({
@@ -295,13 +408,14 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
             if ($object.OriginalSource -is [System.Windows.Controls.Button]) {
                 switch -CaseSensitive -regex ($object.OriginalSource.Name) {
                     '^MiscOpenButton$' {
+                        $path = Resolve-Path $object.OriginalSource.Path
                         if (Test-Path -PathType Leaf $object.OriginalSource.Path) {
-                            $AppStart = Resolve-Path $object.OriginalSource.Path
-                            $AppWorkingDir = Resolve-Path (Split-Path $object.OriginalSource.Path)
+                            $AppStart = $path
+                            $AppWorkingDir = Split-Path $path
                         }
                         else {
-                            $AppStart = Resolve-Path ($object.OriginalSource.Path + '\') #Safeguard against executing "Folder.cmd" instead of opening "Folder"
-                            $AppWorkingDir = Resolve-Path $object.OriginalSource.Path
+                            $AppStart = join-path $path '\' #Safeguard against executing "Folder.cmd" instead of opening "Folder"
+                            $AppWorkingDir = $path
                         }
                         Start-Process $AppStart -WorkingDirectory $AppWorkingDir
                         continue
