@@ -94,8 +94,8 @@ $hWnd = [WPIA.ConsoleUtils]::GetConsoleWindow()
 function New-WPFTab {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory,ValueFromPipelineByPropertyName)]      [string]    $Folder,
-        [Parameter(Mandatory,ValueFromPipelineByPropertyName)]      [string]    $Name,
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)]      [string]    $Folder,
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)]      [string]    $Name,
         [Parameter(ValueFromPipelineByPropertyName)]               [PSCustomObject[]]    $Buttons = @([PSCustomObject]@{
                 Name = "Start"
                 Path = "./Start.bat"
@@ -107,11 +107,19 @@ function New-WPFTab {
             [PSCustomObject]@{
                 Name = "Readme"
                 Path = "./Readme.txt"
-            })
-    )
+            }),
+        [Parameter(ValueFromPipelineByPropertyName)] [switch] $EmulationStation
+    ) 
 
-    try { $tools = Get-FolderSubs $Folder -ErrorAction Stop }
-    catch {  }
+    if ($EmulationStation) {
+        $tools = Get-Folders $Folder
+    }
+    else {
+        if ($Folder) {
+            $tools = Get-FolderSubs $Folder
+        }
+    }
+
     if ($tools) {
         $Tab = [System.Windows.Controls.TabItem]@{
             Header = $Name
@@ -138,6 +146,7 @@ function New-WPFTab {
                 $Data.Buttons.ForEach( { $_.Path = Join-Path $Folder ($_.Path -replace '^\./|^\.\\', '') })
                 Clear-Variable Folder
             
+                $manifest = $null
                 if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
                     $manifest = Get-Content -raw $manifestpath | ConvertFrom-Json
                 }
@@ -198,7 +207,7 @@ function New-WPFTab {
                 $CategoryPanel.AddChild($CategoryInnerBorder)
                 $CategoryInnerBorder.AddChild($CategoryInnerPanel)
 
-                $_.Group | & { Process {
+                $_.Group | Sort-Object Name | & { Process {
                         # in CategoryInnerPanel
                         $AppOuterBorder = [System.Windows.Controls.Border]@{
                             Style = $GUI.WPF.FindResource("UtilitiesCardOuterBorder")
@@ -260,7 +269,7 @@ function New-WPFTab {
         $GUI.Nodes.Tabs.AddChild($Tab)
     }
         
-    else { Write-Warning "Empty or non-existent folder: `"$Folder`". No $Name-Tab will be generated." }
+    else { Write-Warning "Empty or non-existent folder or wrong structure: `"$Folder`". No $Name-Tab will be generated." }
 }
 
 #endregion GUI functions
@@ -346,57 +355,120 @@ $Buttons = @([PSCustomObject]@{
         Name = "Readme"
         Path = "./Readme.txt"
     })
-#dynamic Tools tab
-Get-Folders '.\AddOns' | & { Process {
-        $Data = [PSCustomObject]@{
-            Folder  = $_
-            Name    = Split-Path $_ -Leaf 
-            Header  = Split-Path $_ -Leaf
-            Buttons = $Buttons | ConvertTo-Json -depth 1 | ConvertFrom-Json
-        }
 
-        $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
 
-        if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
-            $manifest = Get-Content -raw $manifestpath | ConvertFrom-Json
-        }
-        if ($manifest) {
-            if ($manifest.Name) {
-                $Data.Name = $manifest.Name
+#EmuStation Tab
+$EmulatorsFolder = join-path $PSScriptRootEsc 'Emulators'
+if (Test-Path $EmulatorsFolder -PathType Container) {
+    $EmulatorsFolder | & { Process {
+            $Data = [PSCustomObject]@{
+                Folder  = $_
+                Name    = Split-Path $_ -Leaf 
+                Header  = Split-Path $_ -Leaf
+                Buttons = $Buttons | ConvertTo-Json -depth 1 | ConvertFrom-Json
             }
-            if ($manifest.Header) {
-                $Data.Header = $manifest.Header
+
+            $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
+
+            if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
+                $manifest = Get-Content -raw $manifestpath | ConvertFrom-Json
             }
-            if ($manifest.Buttons) {
-                If ($manifest.Buttons[0]) {
-                    if ($manifest.Buttons[0].Name) {
-                        $Data.Buttons[0].Name = $manifest.Buttons[0].Name
+            if ($manifest) {
+                if ($manifest.Name) {
+                    $Data.Name = $manifest.Name
+                }
+                if ($manifest.Header) {
+                    $Data.Header = $manifest.Header
+                }
+                if ($manifest.Buttons) {
+                    If ($manifest.Buttons[0]) {
+                        if ($manifest.Buttons[0].Name) {
+                            $Data.Buttons[0].Name = $manifest.Buttons[0].Name
+                        }
+                        if ($manifest.Buttons[0].Path) {
+                            $Data.Buttons[0].Path = $manifest.Buttons[0].Path
+                        }
                     }
-                    if ($manifest.Buttons[0].Path) {
-                        $Data.Buttons[0].Path = $manifest.Buttons[0].Path
+                    If ($manifest.Buttons[1]) {
+                        if ($manifest.Buttons[1].Name) {
+                            $Data.Buttons[1].Name = $manifest.Buttons[1].Name
+                        }
+                        if ($manifest.Buttons[1].Path) {
+                            $Data.Buttons[1].Path = $manifest.Buttons[1].Path
+                        }
+                    }
+                    If ($manifest.Buttons[2]) {
+                        if ($manifest.Buttons[2].Name) {
+                            $Data.Buttons[2].Name = $manifest.Buttons[2].Name
+                        }
+                        if ($manifest.Buttons[2].Path) {
+                            $Data.Buttons[2].Path = $manifest.Buttons[2].Path
+                        }
                     }
                 }
-                If ($manifest.Buttons[1]) {
-                    if ($manifest.Buttons[1].Name) {
-                        $Data.Buttons[1].Name = $manifest.Buttons[1].Name
-                    }
-                    if ($manifest.Buttons[1].Path) {
-                        $Data.Buttons[1].Path = $manifest.Buttons[1].Path
-                    }
-                }
-                If ($manifest.Buttons[2]) {
-                    if ($manifest.Buttons[2].Name) {
-                        $Data.Buttons[2].Name = $manifest.Buttons[2].Name
-                    }
-                    if ($manifest.Buttons[2].Path) {
-                        $Data.Buttons[2].Path = $manifest.Buttons[2].Path
-                    }
-                }
             }
-        }
-        $Data | New-WPFTab 
-    } }
+            $Data
+        } } | New-WPFTab -EmulationStation
+}
 
+$AddOnsFolder = join-path $PSScriptRootEsc 'AddOns'
+if (Test-Path $AddOnsFolder -PathType Container) {
+    #dynamic Tools tab
+    $AddOns = Get-Folders $AddOnsFolder
+    if ($AddOns) {
+        $AddOns | & { Process {
+                $Data = [PSCustomObject]@{
+                    Folder  = $_
+                    Name    = Split-Path $_ -Leaf 
+                    Header  = Split-Path $_ -Leaf
+                    Buttons = $Buttons | ConvertTo-Json -depth 1 | ConvertFrom-Json
+                }
+
+                $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
+
+                if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
+                    $manifest = Get-Content -raw $manifestpath | ConvertFrom-Json
+                }
+                if ($manifest) {
+                    if ($manifest.Name) {
+                        $Data.Name = $manifest.Name
+                    }
+                    if ($manifest.Header) {
+                        $Data.Header = $manifest.Header
+                    }
+                    if ($manifest.Buttons) {
+                        If ($manifest.Buttons[0]) {
+                            if ($manifest.Buttons[0].Name) {
+                                $Data.Buttons[0].Name = $manifest.Buttons[0].Name
+                            }
+                            if ($manifest.Buttons[0].Path) {
+                                $Data.Buttons[0].Path = $manifest.Buttons[0].Path
+                            }
+                        }
+                        If ($manifest.Buttons[1]) {
+                            if ($manifest.Buttons[1].Name) {
+                                $Data.Buttons[1].Name = $manifest.Buttons[1].Name
+                            }
+                            if ($manifest.Buttons[1].Path) {
+                                $Data.Buttons[1].Path = $manifest.Buttons[1].Path
+                            }
+                        }
+                        If ($manifest.Buttons[2]) {
+                            if ($manifest.Buttons[2].Name) {
+                                $Data.Buttons[2].Name = $manifest.Buttons[2].Name
+                            }
+                            if ($manifest.Buttons[2].Path) {
+                                $Data.Buttons[2].Path = $manifest.Buttons[2].Path
+                            }
+                        }
+                    }
+                }
+                $Data
+            } } | New-WPFTab
+    }
+    else { Write-Warning "Empty folder or wrong structure: `"$AddOnsFolder`". No additional Tabs will be generated." }
+}
+else { Write-Warning "Non-existent folder: `"$AddOnsFolder`". No additional Tabs will be generated." }
 
 #New-WPFTab -Folder './AddOns/Auto' -Name 'Emulators'
 #New-WPFTab -Folder './AddOns/Manifest' -Name 'Portable'
