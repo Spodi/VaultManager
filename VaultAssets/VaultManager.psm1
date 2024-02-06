@@ -3,10 +3,12 @@ $FolderizeWExts = @('.cue', '.ccd', '.bin', '.iso') #default extensions for whit
 #region Classes
 class CueTime : IComparable {
     #region Definition
-    [ValidateRange(0, 3921501716349819)][Int64]$TotalFrames = 0
+    #[ValidateRange(0, 3921501716349819)] #int64 for TotalBytes
+    [ValidateRange(0, 7843003432699639)] #uint64 for TotalBytes
+    [Int64]$TotalFrames = 0
     hidden $_init = $(
         $this | Add-member ScriptProperty 'Minutes' {
-            [uint64]([Math]::floor($this.TotalFrames / 4500))
+            [int64]([Math]::floor($this.TotalFrames / 4500))
         };
         $this | Add-member ScriptProperty 'Seconds' {
             [Byte]([Math]::floor(($this.TotalFrames % 4500) / 75))
@@ -15,7 +17,7 @@ class CueTime : IComparable {
             [Byte]([Math]::floor($this.TotalFrames % 75))
         };
         $this | Add-member ScriptProperty 'TotalBytes' {
-            [uint64]($this.TotalFrames * 2352)
+            [uint64]([uint64]$this.TotalFrames * 2352)
         } 
     )
     #endregion Definition
@@ -53,20 +55,25 @@ class CueTime : IComparable {
         $this.TotalFrames = $TotalFrames
     }
 
-    CueTime([timeSpan]$Time) {
-        Write-Warning 'Converting from [TimeSpan] will return inaccurate Frame values!'
-        $this.TotalFrames = [int64]($Time.TotalMilliseconds * (75 / 1000))
+    CueTime([TimeSpan]$Time) {
+        [UInt32]$Modulo = 0
+        $frames = [System.Numerics.BigInteger]::DivRem($Time.Ticks * 75, 10000000, [ref]$Modulo)
+        if ($Modulo) {
+            Write-Warning "Lost precission. Converting from [TimeSpan] will only be accurate in increments of 80ms!"
+        }
+        $this.TotalFrames = $frames
+
     }
 
     CueTime([string]$timeString) {
         #if ($timeString -match '^\d+:0*[1-5]?[1-9]]:0*([0-9]|[1-][0-9]|7[1-4])$') {
         if ($timeString -match '^\d+:\d+:\d+$') {    
             [Double[]]$splitTimes = $timeString -split ':'
-            if ($splitTimes[0] -gt 871444825855 -or $splitTimes[0] -lt 0) { throw 'Invalid Range for "Minutes". Valid range: 0 to 871444825855.' }
+            #if ($splitTimes[0] -gt 1742889651711 -or $splitTimes[0] -lt 0) { throw 'Invalid Range for "Minutes". Valid range: 0 to 1742889651711.' }
             if ($splitTimes[1] -gt 59 -or $splitTimes[1] -lt 0) { throw 'Invalid Range for "Seconds". Valid range: 0 to 59.' }
             if ($splitTimes[2] -gt 74 -or $splitTimes[2] -lt 0) { throw 'Invalid Range for "Frames". Valid range: 0 to 74.' }
             $frames = [int64]($splitTimes[0] * 60 * 75 + $splitTimes[1] * 75 + $splitTimes[2])
-            if ($frames -gt 3921501716349819) { throw 'Time too long. Maximum time is 871444825855:30:69.' }
+            if ($frames -gt 7843003432699639) { throw 'Time too long. Maximum time is 1742889651711:01:64.' }
             $this.TotalFrames = $frames
         
         }
@@ -79,6 +86,9 @@ class CueTime : IComparable {
     }
     [string]ToString() {
         return ('{0:d2}' -f $this.Minutes), ('{0:d2}' -f $this.Seconds), ('{0:d2}' -f $this.Frames) -join ':'
+    }
+    [TimeSpan]ToTimeSpan() {
+        return [int64]($this.TotalFrames * 10000000 / 75)
     }
     static [CueTime]op_Addition([CueTime]$a, [CueTime]$b) {
         return $a.TotalFrames + $b.TotalFrames
@@ -96,17 +106,18 @@ class CueTime : IComparable {
         return $this.TotalFrames -eq $other.TotalFrames
     }
 
-    static [CueTime]FromBytes([Int64]$Bytes) {
-        [Int64]$Modulo = 0
-        [Int64]$sectors = [Math]::DivRem([Int64]$bytes, [Int64]2352, [ref]$Modulo)
+    static [CueTime]FromBytes([uint64]$Bytes) {
+        [UInt16]$Modulo = 0
+        [UInt64]$sectors = [System.Numerics.BigInteger]::DivRem($bytes, 2352, [ref]$Modulo)
         if ($Modulo) {
-            if ($Bytes -gt 9223372036854774288) {
-                throw "A value of $Bytes Bytes is out of range. Must be less or equal to 9223372036854774288 Bytes."
+            #[ValidateRange(0,18446744073709550928)]$Bytes = $bytes
+            if ($Bytes -gt 18446744073709550928) {
+                throw "A value of $Bytes Bytes is out of range. Must be less or equal to 18446744073709550928 Bytes."
             }
-            Write-Warning 'No exact multiplicative from a sector size of 2352. Will round up to the next full sector (cue frame) size.'
+            Write-Warning 'No exact multiplicative from a sector size of 2352 bytes. Will round up to the next full sector (cue frame) size.'
             $sectors += 1
         }
-        return ([Int64]$sectors)
+        return ([uint64]$sectors)
     }
     #endregion Methods
 }
