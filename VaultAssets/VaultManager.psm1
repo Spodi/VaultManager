@@ -364,6 +364,7 @@ function Folderize {
         # Processes only files without this extensions. Accepts an array of extensions, e.g. @('.cue', '.ccd', '.bin', '.iso').
         [Parameter(ParameterSetName = "black")]
         [string[]]  $blacklist = $FolderizeBExts,
+        # Use RegEx instead of file extensions.
         [Parameter(ParameterSetName = "white")] [Parameter(ParameterSetName = "black")]
         [switch] $RegEx,
         # Processes all files.
@@ -486,9 +487,13 @@ function UnFolderize {
         # Processes only files without this extensions. Accepts an array of extensions, e.g. @('.cue', '.ccd', '.bin', '.iso').
         [Parameter(ParameterSetName = "black")]
         [string[]]  $blacklist = $FolderizeBExts,
+        # Use RegEx instead of file extensions.
+        [Parameter(ParameterSetName = "white")] [Parameter(ParameterSetName = "black")]
+        [switch] $RegEx,
         # Processes all files.
         [Parameter(Mandatory, ParameterSetName = "all")]
         [switch]    $all,
+
         # Moves files instead of copying them. Be careful with that.
         [Parameter(ParameterSetName = "white")] [Parameter(ParameterSetName = "black")] [Parameter(ParameterSetName = "all")]
         [switch]    $Move
@@ -497,28 +502,51 @@ function UnFolderize {
     Write-Host -NoNewline 'Retrieving file list, this can take a while... '
     $SourceFiles = Get-Files $source
     Write-Host 'Done'
+
     if ($all) {
         $FileList = $SourceFiles
     }
     elseif ($whitelist) {
-        $FileList = . {
-            foreach ($file in $SourceFiles) {
-                # We don't want to use Get-Item here, as that reads every file with much more metadata than we need.
-                if ([System.IO.Path]::GetExtension($file) -in $whitelist) {
-                    $file
-                }
-            }   
-        }   
+        if ($RegEx) {
+            $FileList = . {
+                foreach ($file in $SourceFiles) {
+                    if ($file -match $whitelist) {
+                        $file
+                    }
+                }   
+            }
+        }      
+        else {
+            $FileList = . {
+                foreach ($file in $SourceFiles) {
+                    # We don't want to use Get-Item here, as that reads every file with much more metadata than we need.
+                    if ([System.IO.Path]::GetExtension($file) -in $whitelist) {
+                        $file
+                    }
+                }   
+            }
+        }
     }
     elseif ($blacklist) {
-        $FileList = . {
-            foreach ($file in $SourceFiles) {
-                # We don't want to use Get-Item here, as that reads every file with much more metadata than we need.
-                if ([System.IO.Path]::GetExtension($file) -notin $black) {
-                    $file
-                }
-            }   
-        } 
+        if ($RegEx) {
+            $FileList = . {
+                foreach ($file in $SourceFiles) {
+                    if ($file -notmatch $blacklist) {
+                        $file
+                    }
+                }   
+            }
+        }      
+        else {
+            $FileList = . {
+                foreach ($file in $SourceFiles) {
+                    # We don't want to use Get-Item here, as that reads every file with much more metadata than we need.
+                    if ([System.IO.Path]::GetExtension($file) -notin $black) {
+                        $file
+                    }
+                }   
+            }
+        }
     }
 
     if (!$filelist) { return }
