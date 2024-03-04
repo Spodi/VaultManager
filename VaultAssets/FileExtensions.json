@@ -1,154 +1,40 @@
 [
-    [
-      ".3ds",
-      false
-    ],
-    [
-      ".7z",
-      false
-    ],
-    [
-      ".apk",
-      false
-    ],
-    [
-      ".bin",
-      false
-    ],
-    [
-      ".bs",
-      false
-    ],
-    [
-      ".cdi",
-      false
-    ],
-    [
-      ".chd",
-      false
-    ],
-    [
-      ".cia",
-      false
-    ],
-    [
-      ".CONFIG",
-      false
-    ],
-    [
-      ".cue",
-      false
-    ],
-    [
-      ".gba",
-      false
-    ],
-    [
-      ".gcm",
-      false
-    ],
-    [
-      ".gdi",
-      false
-    ],
-    [
-      ".ini",
-      false
-    ],
-    [
-      ".iso",
-      false
-    ],
-    [
-      ".md",
-      false
-    ],
-    [
-      ".nsp",
-      false
-    ],
-    [
-      ".png",
-      false
-    ],
-    [
-      ".ps1",
-      false
-    ],
-    [
-      ".rar",
-      false
-    ],
-    [
-      ".raw",
-      false
-    ],
-    [
-      ".rvz",
-      false
-    ],
-    [
-      ".sav",
-      false
-    ],
-    [
-      ".sfc",
-      false
-    ],
-    [
-      ".smc",
-      false
-    ],
-    [
-      ".srm",
-      false
-    ],
-    [
-      ".txt",
-      false
-    ],
-    [
-      ".url",
-      false
-    ],
-    [
-      ".vpk",
-      false
-    ],
-    [
-      ".wad",
-      false
-    ],
-    [
-      ".wud",
-      false
-    ],
-    [
-      ".wux",
-      false
-    ],
-    [
-      ".wbf1",
-      false
-    ],
-    [
-      ".wbfs",
-      false
-    ],
-    [
-      ".webm",
-      false
-    ],
-    [
-      ".xci",
-      false
-    ],
-    [
-      ".z64",
-      false
-    ],
-    [
-      ".zip",
-      false
-    ]
-  ]
+    [".3ds", false],
+    [".7z", false],
+    [".apk", false],
+    [".bin", false],
+    [".bs", false],
+    [".cdi", false],
+    [".chd", false],
+    [".cia", false],
+    [".CONFIG", false],
+    [".cue", false],
+    [".gba", false],
+    [".gcm", false],
+    [".gdi", false],
+    [".ini", false],
+    [".iso", false],
+    [".md", false],
+    [".nsp", false],
+    [".png", false],
+    [".ps1", false],
+    [".rar", false],
+    [".raw", false],
+    [".rvz", false],
+    [".sav", false],
+    [".sfc", false],
+    [".smc", false],
+    [".srm", false],
+    [".txt", false],
+    [".url", false],
+    [".vpk", false],
+    [".wad", false],
+    [".wud", false],
+    [".wux", false],
+    [".wbf1", false],
+    [".wbfs", false],
+    [".webm", false],
+    [".xci", false],
+    [".z64", false],
+    [".zip", false]
+]
