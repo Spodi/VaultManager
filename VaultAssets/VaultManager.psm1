@@ -7,16 +7,16 @@ class CueTime : IComparable {
     [ValidateRange(0, 7843003432699639)] #uint64 for TotalBytes
     [Int64]$TotalFrames = 0
     hidden $_init = $(
-        $this | Add-member ScriptProperty 'Minutes' {
+        $this | Add-Member ScriptProperty 'Minutes' {
             [int64]([Math]::floor($this.TotalFrames / 4500))
         };
-        $this | Add-member ScriptProperty 'Seconds' {
+        $this | Add-Member ScriptProperty 'Seconds' {
             [Byte]([Math]::floor(($this.TotalFrames % 4500) / 75))
         };
-        $this | Add-member ScriptProperty 'Frames' {
+        $this | Add-Member ScriptProperty 'Frames' {
             [Byte]([Math]::floor($this.TotalFrames % 75))
         };
-        $this | Add-member ScriptProperty 'TotalBytes' {
+        $this | Add-Member ScriptProperty 'TotalBytes' {
             [uint64]([uint64]$this.TotalFrames * 2352)
         } 
     )
@@ -59,7 +59,7 @@ class CueTime : IComparable {
         [UInt32]$Modulo = 0
         $frames = [System.Numerics.BigInteger]::DivRem($Time.Ticks * 75, 10000000, [ref]$Modulo)
         if ($Modulo) {
-            Write-Warning "Lost precission. Converting from [TimeSpan] will only be accurate in increments of 80ms!"
+            Write-Warning 'Lost precission. Converting from [TimeSpan] will only be accurate in increments of 80ms!'
         }
         $this.TotalFrames = $frames
 
@@ -209,7 +209,7 @@ function Get-Files {
     )
     begin {
         $prevDir = [System.IO.Directory]::GetCurrentDirectory()
-        [System.IO.Directory]::SetCurrentDirectory((Get-location))
+        [System.IO.Directory]::SetCurrentDirectory((Get-Location))
     }
     process {
         Write-Output ([System.IO.Directory]::EnumerateFiles($path))
@@ -239,7 +239,7 @@ function Get-Folders {
     )
     begin {
         $prevDir = [System.IO.Directory]::GetCurrentDirectory()
-        [System.IO.Directory]::SetCurrentDirectory((Get-location))
+        [System.IO.Directory]::SetCurrentDirectory((Get-Location))
     }
     process {
         [System.IO.Directory]::EnumerateDirectories($path) | & { process {
@@ -270,7 +270,7 @@ function Get-FolderSubs {
     )
     begin {
         $prevDir = [System.IO.Directory]::GetCurrentDirectory()
-        [System.IO.Directory]::SetCurrentDirectory((Get-location))
+        [System.IO.Directory]::SetCurrentDirectory((Get-Location))
     }
     process {
         [System.IO.Directory]::EnumerateDirectories($path) | & { process {
@@ -298,7 +298,7 @@ function Get-FileSystemEntries {
     )
     begin {
         $prevDir = [System.IO.Directory]::GetCurrentDirectory()
-        [System.IO.Directory]::SetCurrentDirectory((Get-location))
+        [System.IO.Directory]::SetCurrentDirectory((Get-Location))
     }
     process {
         Write-Output ([System.IO.Directory]::EnumerateFiles($Path)) 
@@ -327,13 +327,13 @@ function Remove-EmptyFolders {
     )
     begin {
         $prevDir = [System.IO.Directory]::GetCurrentDirectory()
-        [System.IO.Directory]::SetCurrentDirectory((Get-location))
+        [System.IO.Directory]::SetCurrentDirectory((Get-Location))
     }
     Process {
         foreach ($childDirectory in [System.IO.Directory]::EnumerateDirectories($path)) {
             Remove-EmptyFolders -Path $childDirectory
         }
-        $currentChildren = Write-output ([System.IO.Directory]::EnumerateFileSystemEntries($path))
+        $currentChildren = Write-Output ([System.IO.Directory]::EnumerateFileSystemEntries($path))
         if ($null -eq $currentChildren) {
             Write-Host "Removing empty folder at path '${Path}'."
             Remove-Item -Force -LiteralPath $Path
@@ -350,28 +350,28 @@ function Folderize {
     .LINK
     UnFolderize
     #>
-    [CmdletBinding(DefaultParameterSetName = "white")]
+    [CmdletBinding(DefaultParameterSetName = 'white')]
     param (
         # Source folder (from)
-        [Parameter(Mandatory, ParameterSetName = "white", Position = 0)] [Parameter(Mandatory, ParameterSetName = "black", Position = 0)] [Parameter(Mandatory, ParameterSetName = "all", Position = 0)]
+        [Parameter(Mandatory, ParameterSetName = 'white', Position = 0)] [Parameter(Mandatory, ParameterSetName = 'black', Position = 0)] [Parameter(Mandatory, ParameterSetName = 'all', Position = 0)]
         [string]    $source,
         # Destinantion folder (to)
-        [Parameter(Mandatory, ParameterSetName = "white", Position = 1)] [Parameter(Mandatory, ParameterSetName = "black", Position = 1)] [Parameter(Mandatory, ParameterSetName = "all", Position = 1)]
+        [Parameter(Mandatory, ParameterSetName = 'white', Position = 1)] [Parameter(Mandatory, ParameterSetName = 'black', Position = 1)] [Parameter(Mandatory, ParameterSetName = 'all', Position = 1)]
         [string]    $destination,
         # Processes only files with this extensions. Accepts an array of extensions. Defaults to @('.cue', '.ccd', '.bin', '.iso') and is the default mode if neither white- or blacklist is specified.
-        [Parameter(ParameterSetName = "white")]
+        [Parameter(ParameterSetName = 'white')]
         [string[]]  $whitelist = $FolderizeWExts,
         # Processes only files without this extensions. Accepts an array of extensions, e.g. @('.cue', '.ccd', '.bin', '.iso').
-        [Parameter(ParameterSetName = "black")]
+        [Parameter(ParameterSetName = 'black')]
         [string[]]  $blacklist = $FolderizeBExts,
         # Use RegEx instead of file extensions.
-        [Parameter(ParameterSetName = "white")] [Parameter(ParameterSetName = "black")]
+        [Parameter(ParameterSetName = 'white')] [Parameter(ParameterSetName = 'black')]
         [switch] $RegEx,
         # Processes all files.
-        [Parameter(Mandatory, ParameterSetName = "all")]
+        [Parameter(Mandatory, ParameterSetName = 'all')]
         [switch]    $all,
         # Moves files instead of copying them. Be careful with that.
-        [Parameter(ParameterSetName = "white")] [Parameter(ParameterSetName = "black")] [Parameter(ParameterSetName = "all")]
+        [Parameter(ParameterSetName = 'white')] [Parameter(ParameterSetName = 'black')] [Parameter(ParameterSetName = 'all')]
         [switch]    $Move
     )
 
@@ -476,26 +476,26 @@ function UnFolderize {
     #>
     param (
         # Source folder (from)
-        [Parameter(Mandatory, ParameterSetName = "white", Position = 0)] [Parameter(Mandatory, ParameterSetName = "black", Position = 0)] [Parameter(Mandatory, ParameterSetName = "all", Position = 0)]
+        [Parameter(Mandatory, ParameterSetName = 'white', Position = 0)] [Parameter(Mandatory, ParameterSetName = 'black', Position = 0)] [Parameter(Mandatory, ParameterSetName = 'all', Position = 0)]
         [string]    $source,
         # Destinantion folder (to)
-        [Parameter(Mandatory, ParameterSetName = "white", Position = 1)] [Parameter(Mandatory, ParameterSetName = "black", Position = 1)] [Parameter(Mandatory, ParameterSetName = "all", Position = 1)]
+        [Parameter(Mandatory, ParameterSetName = 'white', Position = 1)] [Parameter(Mandatory, ParameterSetName = 'black', Position = 1)] [Parameter(Mandatory, ParameterSetName = 'all', Position = 1)]
         [string]    $destination,
         # Processes only files with this extensions. Accepts an array of extensions. Defaults to @('.cue', '.ccd', '.bin', '.iso') and is the default mode if neither white- or blacklist is specified.
-        [Parameter(ParameterSetName = "white")]
+        [Parameter(ParameterSetName = 'white')]
         [string[]]  $whitelist = $FolderizeWExts,
         # Processes only files without this extensions. Accepts an array of extensions, e.g. @('.cue', '.ccd', '.bin', '.iso').
-        [Parameter(ParameterSetName = "black")]
+        [Parameter(ParameterSetName = 'black')]
         [string[]]  $blacklist = $FolderizeBExts,
         # Use RegEx instead of file extensions.
-        [Parameter(ParameterSetName = "white")] [Parameter(ParameterSetName = "black")]
+        [Parameter(ParameterSetName = 'white')] [Parameter(ParameterSetName = 'black')]
         [switch] $RegEx,
         # Processes all files.
-        [Parameter(Mandatory, ParameterSetName = "all")]
+        [Parameter(Mandatory, ParameterSetName = 'all')]
         [switch]    $all,
 
         # Moves files instead of copying them. Be careful with that.
-        [Parameter(ParameterSetName = "white")] [Parameter(ParameterSetName = "black")] [Parameter(ParameterSetName = "all")]
+        [Parameter(ParameterSetName = 'white')] [Parameter(ParameterSetName = 'black')] [Parameter(ParameterSetName = 'all')]
         [switch]    $Move
     )
 
@@ -608,7 +608,7 @@ function Split-File {
     )
     begin {
         $prevDir = [System.IO.Directory]::GetCurrentDirectory()
-        [System.IO.Directory]::SetCurrentDirectory((Get-location))
+        [System.IO.Directory]::SetCurrentDirectory((Get-Location))
     }
     Process {
         if (Test-Path -Path $fileOut -PathType Leaf) {
@@ -621,7 +621,7 @@ function Split-File {
         }
         $read = [System.IO.File]::OpenRead($fileIn)
         $write = [System.IO.File]::OpenWrite($fileOut)
-        $buffer = new-object Byte[] 131072
+        $buffer = New-Object Byte[] 131072
         $BytesToRead = $size
         [void]$read.seek($start, 0)
         while ($BytesToRead -gt 0) {
@@ -663,7 +663,7 @@ function Merge-File {
     )
     begin {
         $prevDir = [System.IO.Directory]::GetCurrentDirectory()
-        [System.IO.Directory]::SetCurrentDirectory((Get-location))
+        [System.IO.Directory]::SetCurrentDirectory((Get-Location))
         if (Test-Path -Path $fileOut -PathType Leaf) {
             Write-Error "$fileOut already exists."
             return
@@ -929,10 +929,10 @@ function New-CueFromFiles {
     )
     begin {
         $prevDir = [System.IO.Directory]::GetCurrentDirectory()
-        [System.IO.Directory]::SetCurrentDirectory((Get-location))
+        [System.IO.Directory]::SetCurrentDirectory((Get-Location))
         $DataPattern = [byte[]]@(0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0)
         $DreamcastPattern = [byte[]]@(83, 69, 71, 65, 32, 83, 69, 71, 65, 75, 65, 84, 65, 78, 65, 32, 83, 69, 71, 65, 32, 69, 78, 84, 69, 82, 80, 82, 73, 83, 69) #SEGA SEGAKATANA SEGA ENTERPRISE
-        $buffer = new-object Byte[] 352800
+        $buffer = New-Object Byte[] 352800
         $trackNo = 1
         $cueSheet = [CueSheet]::new()
     }
@@ -946,7 +946,7 @@ function New-CueFromFiles {
             $read = [System.IO.File]::OpenRead($infile)
             $bytesRead = $read.read($buffer, 0, 352800)
             $read.close()
-            if (Compare-object $buffer[0..11] $DataPattern) {
+            if (Compare-Object $buffer[0..11] $DataPattern) {
                 $DataType = 'AUDIO'
                 $silence = $buffer | & { Process {
                         if ($_ -ne [Byte]0) { $false }
@@ -966,7 +966,7 @@ function New-CueFromFiles {
                     Write-Error "Can't detect Mode of Data Track $trackNo in `"$path`". No raw copy?"
                     return
                 }
-                if (!(Compare-object $buffer[16..46] $DreamcastPattern)) {
+                if (!(Compare-Object $buffer[16..46] $DreamcastPattern)) {
                     $CueSheet.IsDreamcast = $true
                 }
                 $silence = $false
@@ -1022,9 +1022,9 @@ function Split-CueBin {
         # Folder where to put in the new cuesheet and split files. Won't overwrite existing files.
         [Parameter(Mandatory, Position = 1)] [string]$destination
     )
-    $prevDir = Get-location
-    Set-location (split-path $FileIn)
-    $cue = Get-Content -LiteralPath $fileIn -raw | ConvertFrom-Cue
+    $prevDir = Get-Location
+    Set-Location (Split-Path $FileIn)
+    $cue = Get-Content -LiteralPath $fileIn -Raw | ConvertFrom-Cue
     if (!$cue) { Write-Error "`"$fileIn`" isn't a valid cue file!"; return }
     $allBinary = $cue.Files.FileType | & { Process {
             if ($_ -ne 'BINARY' -and $_ -ne 'MOTOROLA') { $false } 
@@ -1040,7 +1040,7 @@ function Split-CueBin {
 
     ForEach ($File in $cue.Files) {
         $fileInfo = Get-Item $file.FileName
-        if (!$fileInfo) { Write-Error "Could not find `"$(Join-Path (split-path $FileIn) $file.FileName)`". Wrong cue sheet or renamed/moved files?"; return }
+        if (!$fileInfo) { Write-Error "Could not find `"$(Join-Path (Split-Path $FileIn) $file.FileName)`". Wrong cue sheet or renamed/moved files?"; return }
 
         For ($i = 0; $i -lt $File.Tracks.count; $i++) { 
             $curPos = $File.Tracks[$i].Indexes[0].Offset.TotalBytes
@@ -1077,7 +1077,7 @@ function Split-CueBin {
             }
         }
     }
-    Set-location $prevDir
+    Set-Location $prevDir
     $cuecontent = ConvertTo-Cue $newcue
     [System.IO.File]::WriteAllLines([System.IO.Path]::Combine($destination, [System.IO.Path]::GetFileName($fileIn)), $cuecontent)
 }
@@ -1095,12 +1095,12 @@ function Merge-CueBin {
         # New name (and path) for the merged Cue sheet (.bin will get the same name). Won't overwrite existing files.
         [Parameter(Mandatory, Position = 1)] [string]$fileOut
     )
-    $prevDir = Get-location
-    Set-location (split-path $FileIn)
+    $prevDir = Get-Location
+    Set-Location (Split-Path $FileIn)
     $destination = [System.IO.Path]::GetDirectoryName($fileOut)
     if (!$destination)
-    { $destination = ".\" }
-    $cue = Get-Content -LiteralPath $fileIn -raw | ConvertFrom-Cue
+    { $destination = '.\' }
+    $cue = Get-Content -LiteralPath $fileIn -Raw | ConvertFrom-Cue
     if (!$cue) { Write-Error "`"$fileIn`" isn't a valid cue file!"; return }
     $allBinary = $cue.Files.FileType | & { Process {
             if ($_ -ne 'BINARY' -and $_ -ne 'MOTOROLA') { $false } 
@@ -1119,7 +1119,7 @@ function Merge-CueBin {
             Tracks   = & {
                 ForEach ($File in $cue.Files) {
                     $prevFile += $fileInfo.Length
-                    $fileInfo = Get-Item (Join-Path (split-path $FileIn) $file.FileName)
+                    $fileInfo = Get-Item (Join-Path (Split-Path $FileIn) $file.FileName)
                     if (!$fileInfo) { Write-Error "Could not find `"$file`". Wrong cue sheet or renamed/moved files?"; return }
 
                     ForEach ($track in $File.Tracks) {
@@ -1146,7 +1146,7 @@ function Merge-CueBin {
     }
     try { Merge-File $cue.Files.FileName $newName -ErrorAction Stop }
     catch { Write-Host 'Error in Merge-File:'; Write-Error $_; return }
-    Set-location $prevDir
+    Set-Location $prevDir
     $cuecontent = ConvertTo-Cue $newcue
     [System.IO.File]::WriteAllLines([System.IO.Path]::Combine($destination, [System.IO.Path]::GetFileName($fileOut)), $cuecontent)
 }
