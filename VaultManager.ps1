@@ -110,7 +110,7 @@ function New-WPFTab {
             }),
         [Parameter(ValueFromPipelineByPropertyName)] [switch] $EmulationStation
     ) 
-
+process {
     if ($EmulationStation) {
         $tools = Get-Folders $Folder
     }
@@ -270,6 +270,7 @@ function New-WPFTab {
     }
         
     else { Write-Warning "Empty or non-existent folder or wrong structure: `"$Folder`". No $Name-Tab will be generated." }
+}
 }
 
 #endregion GUI functions
