@@ -107,16 +107,16 @@ class CueTime : IComparable {
     }
     #endregion Methods
 }
-Update-TypeData -TypeName 'CueTime' ScriptProperty 'Minutes' {
+Update-TypeData -TypeName 'CueTime' -MemberType ScriptProperty -MemberName 'Minutes' -Value {
     [int64]([Math]::floor($this.TotalFrames / 4500))
 }
-Update-TypeData -TypeName 'CueTime' ScriptProperty 'Seconds' {
+Update-TypeData -TypeName 'CueTime' -MemberType ScriptProperty -MemberName 'Seconds' -Value {
     [Byte]([Math]::floor(($this.TotalFrames % 4500) / 75))
 }
-Update-TypeData -TypeName 'CueTime' ScriptProperty 'Frames' {
+Update-TypeData -TypeName 'CueTime' -MemberType ScriptProperty -MemberName 'Frames' -Value {
     [Byte]([Math]::floor($this.TotalFrames % 75))
 }
-Update-TypeData -TypeName 'CueTime' ScriptProperty 'TotalBytes' {
+Update-TypeData -TypeName 'CueTime' -MemberType ScriptProperty -MemberName 'TotalBytes' -Value {
     [uint64]([uint64]$this.TotalFrames * 2352)
 }
 
