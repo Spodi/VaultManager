@@ -6,20 +6,6 @@ class CueTime : IComparable {
     #[ValidateRange(0, 3921501716349819)] #int64 for TotalBytes
     [ValidateRange(0, 7843003432699639)] #uint64 for TotalBytes
     [Int64]$TotalFrames = 0
-    hidden $_init = $(
-        $this | Add-Member ScriptProperty 'Minutes' {
-            [int64]([Math]::floor($this.TotalFrames / 4500))
-        };
-        $this | Add-Member ScriptProperty 'Seconds' {
-            [Byte]([Math]::floor(($this.TotalFrames % 4500) / 75))
-        };
-        $this | Add-Member ScriptProperty 'Frames' {
-            [Byte]([Math]::floor($this.TotalFrames % 75))
-        };
-        $this | Add-Member ScriptProperty 'TotalBytes' {
-            [uint64]([uint64]$this.TotalFrames * 2352)
-        } 
-    )
     #endregion Definition
     #region Constructors
     CueTime() {}
@@ -121,6 +107,20 @@ class CueTime : IComparable {
     }
     #endregion Methods
 }
+Update-TypeData -TypeName 'CueTime' ScriptProperty 'Minutes' {
+    [int64]([Math]::floor($this.TotalFrames / 4500))
+}
+Update-TypeData -TypeName 'CueTime' ScriptProperty 'Seconds' {
+    [Byte]([Math]::floor(($this.TotalFrames % 4500) / 75))
+}
+Update-TypeData -TypeName 'CueTime' ScriptProperty 'Frames' {
+    [Byte]([Math]::floor($this.TotalFrames % 75))
+}
+Update-TypeData -TypeName 'CueTime' ScriptProperty 'TotalBytes' {
+    [uint64]([uint64]$this.TotalFrames * 2352)
+}
+
+
 class CueIndex {
     #region Definition
     [Byte]$Number
