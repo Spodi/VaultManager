@@ -456,7 +456,7 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                         $objForm = New-Object System.Windows.Forms.SaveFileDialog
                         $objForm.Filter = 'Cue-Sheet|*.cue'
                         if ($GUI.Nodes.($textbox).Text) {
-                            $objForm.InitialDirectory = $GUI.Nodes.($textbox).Text
+                            $objForm.InitialDirectory = Split-Path $GUI.Nodes.($textbox).Text -Parent
                         }
                         if ($objForm.ShowDialog() -eq 'OK') {
                             $GUI.Nodes.($textbox).Text = $objForm.FileName
