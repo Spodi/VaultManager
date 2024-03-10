@@ -21,7 +21,42 @@ if ($NoGUI) {
 Clear-Host
 Write-Warning 'Closing this console kills the GUI!'
 
+class ManifestButton {
+    [string] $Name
+    [string] $Path
 
+    ManifestButton([hashtable]$Properties) {
+        foreach ($Property in $Properties.Keys) {
+            $this.$Property = $Properties.$Property
+        }
+    }
+    ManifestButton([PSCustomObject]$Properties) {
+        foreach ($Property in ($Properties | Get-Member -MemberType 'Property').Name) {
+            $this.$Property = $Properties.$Property
+        }
+        foreach ($Property in ($Properties | Get-Member -MemberType 'NoteProperty').Name) {
+            $this.$Property = $Properties.$Property
+        }
+    }
+}
+class VaultManifest {
+    [string] $Name
+    [string] $Header
+    [string] $Category
+    [string] $Folder
+    [ValidateCount(3,3)][ManifestButton[]] $Buttons = @([ManifestButton]@{
+        Name = 'Start'
+        Path = './Start.bat'
+    },
+    [ManifestButton]@{
+        Name = 'Folder'
+        Path = './'
+    },
+    [ManifestButton]@{
+        Name = 'Readme'
+        Path = './Readme.txt'
+    })
+}
 
 #region GUI functions
 function Show-MessageBox {
@@ -96,18 +131,7 @@ function New-WPFTab {
     param (
         [Parameter(Mandatory, ValueFromPipelineByPropertyName)]      [string]    $Folder,
         [Parameter(Mandatory, ValueFromPipelineByPropertyName)]      [string]    $Name,
-        [Parameter(ValueFromPipelineByPropertyName)]               [PSCustomObject[]]    $Buttons = @([PSCustomObject]@{
-                Name = 'Start'
-                Path = './Start.bat'
-            },
-            [PSCustomObject]@{
-                Name = 'Folder'
-                Path = './'
-            },
-            [PSCustomObject]@{
-                Name = 'Readme'
-                Path = './Readme.txt'
-            }),
+        [Parameter(ValueFromPipelineByPropertyName)]               [ManifestButton[]]    $Buttons,
         [Parameter(ValueFromPipelineByPropertyName)] [switch] $EmulationStation
     ) 
     process {
@@ -136,11 +160,10 @@ function New-WPFTab {
                     $categoryFolder = Split-Path($categoryPath) -Leaf
                     #$readmepath = [System.IO.Path]::Combine($_, 'Readme.txt')
                     $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
-
-                    $Data = [PSCustomObject]@{
+                    $Data = [VaultManifest]@{
                         Name     = Split-Path $_ -Leaf 
                         Category = $categoryFolder
-                        Buttons  = $Buttons | ConvertTo-Json -Depth 1 | ConvertFrom-Json
+                        Buttons  = [ManifestButton[]]($Buttons | ConvertTo-Json -Depth 1 | ConvertFrom-Json) # Simplest way to make a deep copy instead of a reference
                     }
                     $Folder = $_
                     $Data.Buttons.ForEach( { $_.Path = Join-Path $Folder ($_.Path -replace '^\./|^\.\\', '') })
@@ -330,29 +353,14 @@ $GUI.Nodes.FolderizeRegexWhite.Text = $RegexW
 $RegexB = $GUI.Nodes.ListFolderizeExtBlack.ItemsSource.where({ $_[1] }).ForEach({ ($_[0] -replace '(\\|\^|\$|\.|\||\?|\*|\+|\(|\)|\[\{)', '\$1') + '$' }) -join '|'
 $GUI.Nodes.FolderizeRegexBlack.Text = $RegexB
 
-$Buttons = @([PSCustomObject]@{
-        Name = 'Start'
-        Path = './Start.bat'
-    },
-    [PSCustomObject]@{
-        Name = 'Folder'
-        Path = './'
-    },
-    [PSCustomObject]@{
-        Name = 'Readme'
-        Path = './Readme.txt'
-    })
-
-
 #EmuStation Tab
 $EmulatorsFolder = Join-Path $PSScriptRootEsc 'Emulators'
 if (Test-Path $EmulatorsFolder -PathType Container) {
     $EmulatorsFolder | & { Process {
-            $Data = [PSCustomObject]@{
+            $Data = [VaultManifest]@{
                 Folder  = $_
                 Name    = Split-Path $_ -Leaf 
                 Header  = Split-Path $_ -Leaf
-                Buttons = $Buttons | ConvertTo-Json -Depth 1 | ConvertFrom-Json # Simplest way to make a deep copy instead of a reference
             }
 
             $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
@@ -390,11 +398,10 @@ if (Test-Path $AddOnsFolder -PathType Container) {
     $AddOns = Get-Folders $AddOnsFolder
     if ($AddOns) {
         $AddOns | & { Process {
-                $Data = [PSCustomObject]@{
+                $Data = [VaultManifest]@{
                     Folder  = $_
                     Name    = Split-Path $_ -Leaf 
                     Header  = Split-Path $_ -Leaf
-                    Buttons = $Buttons | ConvertTo-Json -Depth 1 | ConvertFrom-Json # Simplest way to make a deep copy instead of a reference
                 }
 
                 $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
@@ -428,10 +435,6 @@ if (Test-Path $AddOnsFolder -PathType Container) {
     else { Write-Warning "Empty folder or wrong structure: `"$AddOnsFolder`". No additional Tabs will be generated." }
 }
 else { Write-Warning "Non-existent folder: `"$AddOnsFolder`". No additional Tabs will be generated." }
-
-#New-WPFTab -Folder './AddOns/Auto' -Name 'Emulators'
-#New-WPFTab -Folder './AddOns/Manifest' -Name 'Portable'
-#New-WPFTab -Folder './AddOns/Installer' -Name 'Installer'
 
 #give anything clickable an event
 $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent, [System.Windows.RoutedEventHandler]({
