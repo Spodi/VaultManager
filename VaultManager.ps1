@@ -352,7 +352,7 @@ if (Test-Path $EmulatorsFolder -PathType Container) {
                 Folder  = $_
                 Name    = Split-Path $_ -Leaf 
                 Header  = Split-Path $_ -Leaf
-                Buttons = $Buttons | ConvertTo-Json -Depth 1 | ConvertFrom-Json
+                Buttons = $Buttons | ConvertTo-Json -Depth 1 | ConvertFrom-Json # Simplest way to make a deep copy instead of a reference
             }
 
             $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
@@ -394,7 +394,7 @@ if (Test-Path $AddOnsFolder -PathType Container) {
                     Folder  = $_
                     Name    = Split-Path $_ -Leaf 
                     Header  = Split-Path $_ -Leaf
-                    Buttons = $Buttons | ConvertTo-Json -Depth 1 | ConvertFrom-Json
+                    Buttons = $Buttons | ConvertTo-Json -Depth 1 | ConvertFrom-Json # Simplest way to make a deep copy instead of a reference
                 }
 
                 $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
@@ -468,7 +468,7 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                         $objForm = New-Object System.Windows.Forms.OpenFileDialog
                         $objForm.Filter = 'Cue-Sheet|*.cue'
                         if ($GUI.Nodes.($textbox).Text) {
-                            $objForm.InitialDirectory = $GUI.Nodes.($textbox).Text
+                            $objForm.InitialDirectory = Split-Path $GUI.Nodes.($textbox).Text -Parent
                         }
                         if ($objForm.ShowDialog() -eq 'OK') {
                             $GUI.Nodes.($textbox).Text = $objForm.FileName
