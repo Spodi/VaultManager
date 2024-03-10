@@ -158,28 +158,14 @@ function New-WPFTab {
                             $Data.Category = $manifest.Category
                         }
                         if ($manifest.Buttons) {
-                            If ($manifest.Buttons[0]) {
-                                if ($manifest.Buttons[0].Name) {
-                                    $Data.Buttons[0].Name = $manifest.Buttons[0].Name
-                                }
-                                if ($manifest.Buttons[0].Path) {
-                                    $Data.Buttons[0].Path = Join-Path $_ ($manifest.Buttons[0].Path -replace '^\./|^\.\\', '')
-                                }
-                            }
-                            If ($manifest.Buttons[1]) {
-                                if ($manifest.Buttons[1].Name) {
-                                    $Data.Buttons[1].Name = $manifest.Buttons[1].Name
-                                }
-                                if ($manifest.Buttons[1].Path) {
-                                    $Data.Buttons[1].Path = Join-Path $_ ($manifest.Buttons[1].Path -replace '^\./|^\.\\', '')
-                                }
-                            }
-                            If ($manifest.Buttons[2]) {
-                                if ($manifest.Buttons[2].Name) {
-                                    $Data.Buttons[2].Name = $manifest.Buttons[2].Name
-                                }
-                                if ($manifest.Buttons[2].Path) {
-                                    $Data.Buttons[2].Path = Join-Path $_ ($manifest.Buttons[2].Path -replace '^\./|^\.\\', '')
+                            for ($i = 0; $i -lt 3; $i++) {
+                                If ($manifest.Buttons[$i]) {
+                                    if ($manifest.Buttons[$i].Name) {
+                                        $Data.Buttons[$i].Name = $manifest.Buttons[$i].Name
+                                    }
+                                    if ($manifest.Buttons[$i].Path) {
+                                        $Data.Buttons[$i].Path = Join-Path $_ ($manifest.Buttons[$i].Path -replace '^\./|^\.\\', '')
+                                    }
                                 }
                             }
                         }
@@ -382,28 +368,14 @@ if (Test-Path $EmulatorsFolder -PathType Container) {
                     $Data.Header = $manifest.Header
                 }
                 if ($manifest.Buttons) {
-                    If ($manifest.Buttons[0]) {
-                        if ($manifest.Buttons[0].Name) {
-                            $Data.Buttons[0].Name = $manifest.Buttons[0].Name
-                        }
-                        if ($manifest.Buttons[0].Path) {
-                            $Data.Buttons[0].Path = $manifest.Buttons[0].Path
-                        }
-                    }
-                    If ($manifest.Buttons[1]) {
-                        if ($manifest.Buttons[1].Name) {
-                            $Data.Buttons[1].Name = $manifest.Buttons[1].Name
-                        }
-                        if ($manifest.Buttons[1].Path) {
-                            $Data.Buttons[1].Path = $manifest.Buttons[1].Path
-                        }
-                    }
-                    If ($manifest.Buttons[2]) {
-                        if ($manifest.Buttons[2].Name) {
-                            $Data.Buttons[2].Name = $manifest.Buttons[2].Name
-                        }
-                        if ($manifest.Buttons[2].Path) {
-                            $Data.Buttons[2].Path = $manifest.Buttons[2].Path
+                    for ($i = 0; $i -lt 3; $i++) {
+                        If ($manifest.Buttons[$i]) {
+                            if ($manifest.Buttons[$i].Name) {
+                                $Data.Buttons[$i].Name = $manifest.Buttons[$i].Name
+                            }
+                            if ($manifest.Buttons[$i].Path) {
+                                $Data.Buttons[$i].Path = $manifest.Buttons[$i].Path
+                            }
                         }
                     }
                 }
@@ -438,28 +410,14 @@ if (Test-Path $AddOnsFolder -PathType Container) {
                         $Data.Header = $manifest.Header
                     }
                     if ($manifest.Buttons) {
-                        If ($manifest.Buttons[0]) {
-                            if ($manifest.Buttons[0].Name) {
-                                $Data.Buttons[0].Name = $manifest.Buttons[0].Name
-                            }
-                            if ($manifest.Buttons[0].Path) {
-                                $Data.Buttons[0].Path = $manifest.Buttons[0].Path
-                            }
-                        }
-                        If ($manifest.Buttons[1]) {
-                            if ($manifest.Buttons[1].Name) {
-                                $Data.Buttons[1].Name = $manifest.Buttons[1].Name
-                            }
-                            if ($manifest.Buttons[1].Path) {
-                                $Data.Buttons[1].Path = $manifest.Buttons[1].Path
-                            }
-                        }
-                        If ($manifest.Buttons[2]) {
-                            if ($manifest.Buttons[2].Name) {
-                                $Data.Buttons[2].Name = $manifest.Buttons[2].Name
-                            }
-                            if ($manifest.Buttons[2].Path) {
-                                $Data.Buttons[2].Path = $manifest.Buttons[2].Path
+                        for ($i = 0; $i -lt 3; $i++) {
+                            If ($manifest.Buttons[$i]) {
+                                if ($manifest.Buttons[$i].Name) {
+                                    $Data.Buttons[$i].Name = $manifest.Buttons[$i].Name
+                                }
+                                if ($manifest.Buttons[$i].Path) {
+                                    $Data.Buttons[$i].Path = $manifest.Buttons[$i].Path
+                                }
                             }
                         }
                     }

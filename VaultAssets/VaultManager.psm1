@@ -109,16 +109,16 @@ class CueTime : IComparable {
 }
 Update-TypeData -TypeName 'CueTime' -MemberType ScriptProperty -MemberName 'Minutes' -Value {
     [int64]([Math]::floor($this.TotalFrames / 4500))
-}
+} -Force
 Update-TypeData -TypeName 'CueTime' -MemberType ScriptProperty -MemberName 'Seconds' -Value {
     [Byte]([Math]::floor(($this.TotalFrames % 4500) / 75))
-}
+} -Force
 Update-TypeData -TypeName 'CueTime' -MemberType ScriptProperty -MemberName 'Frames' -Value {
     [Byte]([Math]::floor($this.TotalFrames % 75))
-}
+} -Force
 Update-TypeData -TypeName 'CueTime' -MemberType ScriptProperty -MemberName 'TotalBytes' -Value {
     [uint64]([uint64]$this.TotalFrames * 2352)
-}
+} -Force
 
 
 class CueIndex {
