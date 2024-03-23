@@ -690,77 +690,6 @@ function Merge-File {
 #endregion Merging/splitting files
 
 #region Cue sheets
-function ConvertFrom-CueOld {
-    <#
-    .SYNOPSIS
-    Converts a Cue sheet formatted string to a collection of CueFile objects.
-    .LINK
-    ConvertTo-Cue
-    .EXAMPLE
-    Get-Content "Twisted Metal 4 (USA).cue" -raw | ConvertFrom-Cue
-    Output:
-    FileName                             FileType Tracks
-    --------                             -------- ------
-    Twisted Metal 4 (USA) (Track 01).bin BINARY   {1 MODE2/2352}
-    Twisted Metal 4 (USA) (Track 02).bin BINARY   {2 AUDIO}
-    Twisted Metal 4 (USA) (Track 03).bin BINARY   {3 AUDIO}
-    Twisted Metal 4 (USA) (Track 04).bin BINARY   {4 AUDIO}
-    Twisted Metal 4 (USA) (Track 05).bin BINARY   {5 AUDIO}
-    Twisted Metal 4 (USA) (Track 06).bin BINARY   {6 AUDIO}
-    Twisted Metal 4 (USA) (Track 07).bin BINARY   {7 AUDIO}
-    #>
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline)]   [string] $InputObject 
-    )
-    Process {
-        $cue = $InputObject -split '\r\n|\r|\n'
-        [CueSheet]@{
-            Files = . {
-                for ($i = 0; $i -lt $cue.count; $i++) {
-                    if ($cue[$i] -match '^\s*File\s+') {
-                        if ($cue[$i] -match '".+"') {
-                            $info = ($cue[$i] -split '^\s*File\s+"')[1] -split '"\s+'
-                        }
-                        else {
-                            $info = ($cue[$i] -split '^\s*File\s+')[1] -split '\s+'
-                        }
-                        [CueFile]@{
-                            FileName = $info[0].Trim()
-                            FileType = $info[1].Trim()
-
-                            Tracks   = . {
-                                for (($j = $i + 1); $j -lt $cue.count; $j++) {               
-                                    if ($cue[$j] -match '^\s*File\s+') { break }
-                                    elseif ($cue[$j] -match '^\s*Track\s+') {
-                                        $info = ($cue[$j] -split '^\s*Track\s+')[1] -split '\s+'
-                                        [CueTrack]@{
-                                            Number   = $info[0]
-                                            DataType = $info[1].Trim()
-
-                                            Indexes  = . {
-                                                for ($k = $j + 1; $k -lt $cue.count; ($k++)) {
-                                                    if ($cue[$k] -match '^\s*Track\s+') { break }
-                                                    elseif ($cue[$k] -match '^\s*Index\s+') {
-                                                        $info = ($cue[$k] -split '^\s*Index\s+')[1] -split '\s+'
-                                                        [CueIndex]@{
-                                                            Number = $info[0]
-                                                            Offset = $info[1]
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 function ConvertFrom-Cue {
     <#
     .SYNOPSIS
@@ -983,7 +912,7 @@ function New-CueFromFiles {
                             @([CueIndex]@{
                                     Number = 0
                                     Offset = [CueTime]'00:00:00'
-                                }, [PSCustomObject]@{
+                                }, [CueIndex]@{
                                     Number = 1
                                     Offset = [CueTime]'00:02:00'
                                 })

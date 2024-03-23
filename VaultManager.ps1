@@ -104,27 +104,6 @@ function New-XMLNamespaceManager {
 
     return , $NsMgr # unary comma wraps $NsMgr so it isn't unrolled
 }
-Add-Type -Name ConsoleUtils -Namespace WPIA -MemberDefinition @'
-[DllImport("Kernel32.dll")]
-public static extern IntPtr GetConsoleWindow();
-[DllImport("user32.dll")]
-public static extern bool ShowWindow(IntPtr hWnd, Int32 nCmdShow);
-'@
-$ConsoleMode = @{
-    Hide               = 0
-    Normal             = 1
-    Minimize           = 2
-    Maximize           = 3
-    NormalNoActivate   = 4
-    Show               = 5
-    MinimizeShowNext   = 6
-    MinimizeNoActivate = 7
-    ShowNoActivate     = 8
-    Restore            = 9
-    Default            = 10
-    ForceMinimize      = 11
-}
-$hWnd = [WPIA.ConsoleUtils]::GetConsoleWindow()
 
 function New-WPFTab {
     [CmdletBinding()]
