@@ -1009,6 +1009,7 @@ function Split-CueBin {
     Set-Location $prevDir
     $cuecontent = ConvertTo-Cue $newcue
     [System.IO.File]::WriteAllLines([System.IO.Path]::Combine($destination, [System.IO.Path]::GetFileName($fileIn)), $cuecontent)
+    Write-Host 'Done writing files to', $destination
 }
 function Merge-CueBin {
     <#
@@ -1078,6 +1079,7 @@ function Merge-CueBin {
     Set-Location $prevDir
     $cuecontent = ConvertTo-Cue $newcue
     [System.IO.File]::WriteAllLines([System.IO.Path]::Combine($destination, [System.IO.Path]::GetFileName($fileOut)), $cuecontent)
+    Write-Host 'Done writing files to', $destination
 }
 #endregion Cue/Bin Tools
 #endregion Functions
