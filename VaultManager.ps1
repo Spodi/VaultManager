@@ -502,7 +502,7 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                             UnFolderize @Values
                         }
                         if ($GUI.Nodes.FolderizeMove.IsChecked -and $GUI.Nodes.FolderizeEmptyFolders.IsChecked) {
-                            Remove-EmptyFolders $GUI.Nodes.FolderizeInput.Text
+                            Remove-EmptyFolders (Get-ChildItem -Directory $GUI.Nodes.FolderizeInput.Text)
                         }
                         continue
                     }
