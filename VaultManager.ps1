@@ -44,18 +44,18 @@ class VaultManifest {
     [string] $Header
     [string] $Category
     [string] $Folder
-    [ValidateCount(3,3)][ManifestButton[]] $Buttons = @([ManifestButton]@{
-        Name = 'Start'
-        Path = './Start.bat'
-    },
-    [ManifestButton]@{
-        Name = 'Folder'
-        Path = './'
-    },
-    [ManifestButton]@{
-        Name = 'Readme'
-        Path = './Readme.txt'
-    })
+    [ValidateCount(3, 3)][ManifestButton[]] $Buttons = @([ManifestButton]@{
+            Name = 'Start'
+            Path = './Start.bat'
+        },
+        [ManifestButton]@{
+            Name = 'Folder'
+            Path = './'
+        },
+        [ManifestButton]@{
+            Name = 'Readme'
+            Path = './Readme.txt'
+        })
 }
 
 #region GUI functions
@@ -337,9 +337,9 @@ $EmulatorsFolder = Join-Path $PSScriptRootEsc 'Emulators'
 if (Test-Path $EmulatorsFolder -PathType Container) {
     $EmulatorsFolder | & { Process {
             $Data = [VaultManifest]@{
-                Folder  = $_
-                Name    = Split-Path $_ -Leaf 
-                Header  = Split-Path $_ -Leaf
+                Folder = $_
+                Name   = Split-Path $_ -Leaf 
+                Header = Split-Path $_ -Leaf
             }
 
             $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
@@ -378,9 +378,9 @@ if (Test-Path $AddOnsFolder -PathType Container) {
     if ($AddOns) {
         $AddOns | & { Process {
                 $Data = [VaultManifest]@{
-                    Folder  = $_
-                    Name    = Split-Path $_ -Leaf 
-                    Header  = Split-Path $_ -Leaf
+                    Folder = $_
+                    Name   = Split-Path $_ -Leaf 
+                    Header = Split-Path $_ -Leaf
                 }
 
                 $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
