@@ -465,7 +465,8 @@ function Folderize {
             Write-Host -Separator '' "[Copy]`t `"", $SourceFile.Name, '" to "', ($newDest -replace '/', '\'), '"'
             Copy-Item -LiteralPath $SourceFile.Name $newDest
         }
-    }  
+    }
+    Write-Host 'Finished organizing.' 
 }
 function UnFolderize {
     <#
@@ -580,7 +581,8 @@ function UnFolderize {
             Write-Host -Separator '' "[Copy]`t `"", $SourceFile.Name, '" to "', ($newDest -replace '/', '\'), '"'
             Copy-Item -LiteralPath $SourceFile.Name $newDest
         }
-    }  
+    }
+    Write-Host 'Finished organizing.' 
 }
 #endregion File managing
 
