@@ -775,7 +775,12 @@ function ConvertFrom-Cue {
                     } 
                     $fileNo++; continue
                 }         
-                'Rem' { continue }
+                'Rem' {
+                    if ($line[1] -eq 'SINGLE-DENSITY' -and $line[2] -eq 'AREA') {
+                        $cueSheet.IsDreamcast = $true
+                    }
+                    continue
+                }
                 '' { continue }
                 Default { Write-Warning ("Line $($i): Invalid token in ROOT: $_") }        
             }
@@ -825,12 +830,23 @@ function ConvertTo-Cue {
         [Parameter(Mandatory, ValueFromPipeline)]   $InputObject
     )
     Process {
+        $FileNum = 0
         If ($InputObject.Catalog) { "CATALOG $($InputObject.Catalog)" }
         If ($InputObject.CDTextFile) { "CDTEXTFILE `"$($InputObject.CDTextFile)`"" }
         If ($InputObject.Performer) { "PERFORMER `"$($InputObject.Performer)`"" }
         If ($InputObject.Title) { "TITLE `"$($InputObject.Title)`"" }
         If ($InputObject.Songwriter) { "SONGWRITER `"$($InputObject.Songwriter)`"" }
         foreach ($file in $InputObject.Files) {
+            # This isn't optimal, lol. But DreamCast emulators only work with on split bins anyway.
+            if ($InputObject.IsDreamcast) {  
+                $FileNum++
+            }
+            if ($FileNum -eq 1) {
+                'REM SINGLE-DENSITY AREA'
+            }
+            elseif ($FileNum -eq 3) {
+                'REM HIGH-DENSITY AREA'
+            }
             "FILE $file"
             foreach ($track in $file.Tracks) {
                 "  TRACK $track"
@@ -877,13 +893,35 @@ function New-CueFromFiles {
             $read = [System.IO.File]::OpenRead($infile)
             $bytesRead = $read.read($buffer, 0, 352800)
             $read.close()
+
+            if (!(Compare-Object $buffer[16..46] $DreamcastPattern)) {
+                $CueSheet.IsDreamcast = $true
+            }
+
             if (Compare-Object $buffer[0..11] $DataPattern) {
-                $DataType = 'AUDIO'
-                $silence = $buffer | & { Process {
-                        if ($_ -ne [Byte]0) { $false }
-                    } end { $true } } | Select-Object -First 1
-                if ($bytesRead -ne 352800 -or !$silence ) {
-                    Write-Warning "Audio Track $trackNo in `"$path`" has no 2 seconds of silence at the beginning. No raw copy?"
+                # If no Data, try Dreamcast before Audio
+                if (!(Compare-Object $buffer[176400..176411] $DataPattern) -and $cueSheet.IsDreamcast) {
+                    if ($buffer[176415] -eq 1) {
+                        $DataType = 'MODE1/2352'
+                    }
+                    elseif ($buffer[176415] -eq 2) {
+                        $DataType = 'MODE2/2352'
+                    }
+                    else {
+                        Write-Error "Can't detect Mode of Data Track $trackNo in `"$path`". No raw copy?"
+                        return
+                    }
+                    $DreamcastData = $true
+                }
+                else {
+
+                    $DataType = 'AUDIO'
+                    $silence = $buffer | & { Process {
+                            if ($_ -ne [Byte]0) { $false }
+                        } end { $true } } | Select-Object -First 1
+                    if ($bytesRead -ne 352800 -or !$silence ) {
+                        Write-Warning "Audio Track $trackNo in `"$path`" has no 2 seconds of silence at the beginning. No raw copy?"
+                    }
                 }
             }
             else {
@@ -897,11 +935,9 @@ function New-CueFromFiles {
                     Write-Error "Can't detect Mode of Data Track $trackNo in `"$path`". No raw copy?"
                     return
                 }
-                if (!(Compare-Object $buffer[16..46] $DreamcastPattern)) {
-                    $CueSheet.IsDreamcast = $true
-                }
                 $silence = $false
             }
+            
             $CueSheet.Files += [CueFile]@{
                 FileName = $inFile.Name
                 FileType = 'BINARY'
@@ -910,7 +946,16 @@ function New-CueFromFiles {
                     Number   = $trackNo
                     DataType = $DataType
                     Indexes  = . {
-                        if ($silence) {
+                        if ($DreamcastData) {
+                            @([CueIndex]@{
+                                    Number = 0
+                                    Offset = [CueTime]'00:00:00'
+                                }, [CueIndex]@{
+                                    Number = 1
+                                    Offset = [CueTime]'00:03:00'
+                                })   
+                        }
+                        elseif ($silence) {
                             @([CueIndex]@{
                                     Number = 0
                                     Offset = [CueTime]'00:00:00'
