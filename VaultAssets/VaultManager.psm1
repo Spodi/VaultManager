@@ -604,9 +604,9 @@ function Split-File {
         # Name and path of the new file. Won't overwrite existing files.
         [Parameter(Mandatory, Position = 1)] [string]$fileOut,
         # Starting position of the area to copy in bytes (from start of the file).
-        [int]$start = 0,
+        [uint64]$start = 0,
         # Size of the area to copy in bytes (bytes from starting position).
-        [Parameter(Mandatory)] [int]$size
+        [Parameter(Mandatory)] [uint64]$size
     )
     begin {
         $prevDir = [System.IO.Directory]::GetCurrentDirectory()
@@ -661,7 +661,11 @@ function Merge-File {
         # Array of files paths to merge together (same order as in the array). E.g. @('test1.bin', 'Test2.bin', 'Test3.bin')
         [ValidateScript({ Test-Path -Path $_ -PathType Leaf })][Parameter(ValueFromPipeline)] [string[]]$fileIn,
         # Name and path of the new merged file. Won't overwrite existing files.
-        [Parameter(Mandatory)] [string]$fileOut
+        [Parameter(Mandatory)] [string]$fileOut,
+        # Ammount of added zeroed bytes at the begnning of the output file.
+        [Parameter()] [uint32]$PreGap,
+        # Ammount of added zeroed bytes at the end of the output file.
+        [Parameter()] [uint32]$PostGap
     )
     begin {
         $prevDir = [System.IO.Directory]::GetCurrentDirectory()
@@ -675,6 +679,10 @@ function Merge-File {
             New-Item $destination -ItemType Directory | Out-Null
         }
         $write = [System.IO.File]::OpenWrite($fileOut)
+        if ($PreGap -gt 0) {
+            $gap = [byte[]]::new($PreGap)
+            [void]$write.write($gap, 0, $PreGap)
+        }
     }
     Process {
         foreach ($file in $filein) {
@@ -685,6 +693,10 @@ function Merge-File {
         $read.close()
     }
     end {
+        if ($PostGap -gt 0) {
+            $gap = [byte[]]::new($PostGap)
+            [void]$write.write($gap, 0, $PostGap)
+        }
         $write.close()
         [System.IO.Directory]::SetCurrentDirectory($prevDir)
     }
@@ -855,11 +867,11 @@ function ConvertTo-Cue {
                 If ($track.Title) { "    TITLE `"$($track.Title)`"" }
                 If ($track.Songwriter) { "    SONGWRITER `"$($track.Songwriter)`"" }
                 If ($track.Flags) { "    FLAGS $($track.Flags -join ' ')" }
-                If ($track.PreGap) { "    PREGAP $($track.PreGap)" }
+                If ($track.PreGap -gt 0) { "    PREGAP $($track.PreGap)" }
                 foreach ($index in $track.indexes) {
                     "    INDEX $index"
                 }
-                If ($track.PostGap) { "    POSTGAP $($track.PostGap)" }
+                If ($track.PostGap -gt 0) { "    POSTGAP $($track.PostGap)" }
             }
         }
     }
@@ -1127,6 +1139,88 @@ function Merge-CueBin {
     $cuecontent = ConvertTo-Cue $newcue
     [System.IO.File]::WriteAllLines([System.IO.Path]::Combine($destination, [System.IO.Path]::GetFileName($fileOut)), $cuecontent)
     Write-Host 'Done writing files to', $destination
+}
+
+function Format-CueGaps {
+    <#
+    .SYNOPSIS
+    Formats a Cue/Bin with Pre/Postgaps to one with Index 0 and prepends/appends zeros to the binaries accordingly.
+    .LINK
+    Merge-File
+    #>
+    param(
+        # Cuesheet to process.
+        [string] $fileIn,
+        # Destination folder for the altered cue/bin files.
+        [string] $destination
+    )
+    $prevDir = Get-Location
+    Set-Location (Split-Path $FileIn)
+
+    $cue = Get-Content -LiteralPath $fileIn -Raw | ConvertFrom-Cue
+    if (!$cue) { Write-Error "`"$fileIn`" isn't a valid cue file!"; return }
+
+    ForEach ($File in $cue.Files) {
+        $PreGap = $null
+
+        ForEach ($Track in $File.Tracks) {
+            if (@($_.Indexes).Count -eq 1) {
+                if ($Track.Pregap -gt 0) {
+                    $PreGap = $Track.Pregap
+                    $Track.Pregap = 0
+                    foreach ($Index in $Track.Indexes) {
+                        $index.Number = $index.Number.Number + 1
+                        $Index.Offset = $Index.Offset + $PreGap
+                    }                    
+                    $Track.Indexes = . {
+                        [CueIndex]@{
+                            Number = 0
+                            Offset = 0
+                        }
+                        $Track.Indexes
+                    }
+                }
+                if ($Track.PostGap -gt 0) {
+                    $PostGap = $Track.PostGap
+                    $Track.PostGap = 0
+                }
+            }
+            else { Write-Error "`"$fileIn`" contains a file with multiple tracks. Converting is only possible with one track per file."; return }
+        }
+        try { Merge-File $File.FileName (Join-Path $destination $File.FileName) -Pregap $Pregap.TotalBytes -PostGap $PostGap.TotalBytes }
+        catch { Write-Host 'Error in Merge-File:'; Write-Error $_; return }
+        
+    }
+    $cuecontent = ConvertTo-Cue $cue
+    Set-Location $prevDir
+    [System.IO.File]::WriteAllLines([System.IO.Path]::Combine($destination, [System.IO.Path]::GetFileName($fileIn)), $cuecontent)
+    Write-Host 'Done writing files to', $destination
+}
+
+
+function Compress-Disc {
+    <#
+    .SYNOPSIS
+    Compresses a Cue/Bin with 7-Zip and optimized parameters.
+    .NOTES
+    Requires 7z.exe and 7z.dll in the VaultAssetes folder.
+    This is just a silly thing to show that 7-Zip can often still compress such data better than CHD, if done right.
+    #>
+    param(
+        [string] $fileIn
+    )
+    $cue = Get-Content -LiteralPath $fileIn -Raw | ConvertFrom-Cue
+    if (!$cue) { Write-Error "`"$fileIn`" isn't a valid cue file!"; return }
+    $cue.Files | & { Process {
+            $test = ($_.Tracks | Group-Object DataType)
+            if ($test.count -eq 1 -and $test.Name -eq 'AUDIO') {
+                & "$(Join-Path $PSScriptRoot 7z.exe)" a test.7z "$($_.FileName)" -mf=Delta:4 -m0=LZMA:x9:mt2:d1g:lc1:lp2
+            }
+            else {
+                & "$(Join-Path $PSScriptRoot 7z.exe)" a test.7z "$($_.FileName)" -m0=LZMA:x9:d1g
+            }
+        } }
+    & "$(Join-Path $PSScriptRoot 7z.exe)" a test.7z "$fileIn" -m0=PPmD:x9:o16
 }
 #endregion Cue/Bin Tools
 #endregion Functions
