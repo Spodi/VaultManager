@@ -1010,6 +1010,8 @@ function Split-CueBin {
         # Folder where to put in the new cuesheet and split files. Won't overwrite existing files.
         [Parameter(Mandatory, Position = 1)] [string]$destination
     )
+    $prevNetDir = [System.IO.Directory]::GetCurrentDirectory()
+    [System.IO.Directory]::SetCurrentDirectory((Get-Location))
     $prevDir = Get-Location
     Set-Location (Split-Path $FileIn)
     $cue = Get-Content -LiteralPath $fileIn -Raw | ConvertFrom-Cue
@@ -1068,6 +1070,7 @@ function Split-CueBin {
     Set-Location $prevDir
     $cuecontent = ConvertTo-Cue $newcue
     [System.IO.File]::WriteAllLines([System.IO.Path]::Combine($destination, [System.IO.Path]::GetFileName($fileIn)), $cuecontent)
+    [System.IO.Directory]::SetCurrentDirectory($prevNetDir)
     Write-Host 'Done writing files to', $destination
 }
 function Merge-CueBin {
@@ -1084,6 +1087,8 @@ function Merge-CueBin {
         # New name (and path) for the merged Cue sheet (.bin will get the same name). Won't overwrite existing files.
         [Parameter(Mandatory, Position = 1)] [string]$fileOut
     )
+    $prevNetDir = [System.IO.Directory]::GetCurrentDirectory()
+    [System.IO.Directory]::SetCurrentDirectory((Get-Location))
     $prevDir = Get-Location
     Set-Location (Split-Path $FileIn)
     $destination = [System.IO.Path]::GetDirectoryName($fileOut)
@@ -1138,6 +1143,7 @@ function Merge-CueBin {
     Set-Location $prevDir
     $cuecontent = ConvertTo-Cue $newcue
     [System.IO.File]::WriteAllLines([System.IO.Path]::Combine($destination, [System.IO.Path]::GetFileName($fileOut)), $cuecontent)
+    [System.IO.Directory]::SetCurrentDirectory($prevNetDir)
     Write-Host 'Done writing files to', $destination
 }
 
