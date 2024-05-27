@@ -1,5 +1,3 @@
-$FolderizeWExts = @('.cue', '.ccd', '.bin', '.iso') #default extensions for whitelist go here. An empty string ('') means "files without extension".
-
 #region Classes
 class CueTime : IComparable {
     #region Definition
@@ -1012,8 +1010,7 @@ function Split-CueBin {
     )
     $prevNetDir = [System.IO.Directory]::GetCurrentDirectory()
     [System.IO.Directory]::SetCurrentDirectory((Get-Location))
-    $prevDir = Get-Location
-    Set-Location (Split-Path $FileIn)
+    Push-Location (Split-Path $FileIn)
     $cue = Get-Content -LiteralPath $fileIn -Raw | ConvertFrom-Cue
     if (!$cue) { Write-Error "`"$fileIn`" isn't a valid cue file!"; return }
     $allBinary = $cue.Files.FileType | & { Process {
@@ -1067,7 +1064,7 @@ function Split-CueBin {
             }
         }
     }
-    Set-Location $prevDir
+    Pop-Location
     $cuecontent = ConvertTo-Cue $newcue
     [System.IO.File]::WriteAllLines([System.IO.Path]::Combine($destination, [System.IO.Path]::GetFileName($fileIn)), $cuecontent)
     [System.IO.Directory]::SetCurrentDirectory($prevNetDir)
@@ -1089,8 +1086,7 @@ function Merge-CueBin {
     )
     $prevNetDir = [System.IO.Directory]::GetCurrentDirectory()
     [System.IO.Directory]::SetCurrentDirectory((Get-Location))
-    $prevDir = Get-Location
-    Set-Location (Split-Path $FileIn)
+    Push-Location (Split-Path $FileIn)
     $destination = [System.IO.Path]::GetDirectoryName($fileOut)
     if (!$destination)
     { $destination = '.\' }
@@ -1140,7 +1136,7 @@ function Merge-CueBin {
     }
     try { Merge-File $cue.Files.FileName $newName -ErrorAction Stop }
     catch { Write-Host 'Error in Merge-File:'; Write-Error $_; return }
-    Set-Location $prevDir
+    Pop-Location
     $cuecontent = ConvertTo-Cue $newcue
     [System.IO.File]::WriteAllLines([System.IO.Path]::Combine($destination, [System.IO.Path]::GetFileName($fileOut)), $cuecontent)
     [System.IO.Directory]::SetCurrentDirectory($prevNetDir)
@@ -1156,12 +1152,11 @@ function Format-CueGaps {
     #>
     param(
         # Cuesheet to process.
-        [string] $fileIn,
+        [ValidateScript({ Test-Path -Path $_ -PathType Leaf })][Parameter(Mandatory, Position = 0)] [string] $fileIn,
         # Destination folder for the altered cue/bin files.
         [string] $destination
     )
-    $prevDir = Get-Location
-    Set-Location (Split-Path $FileIn)
+    Push-Location (Split-Path $FileIn)
 
     $cue = Get-Content -LiteralPath $fileIn -Raw | ConvertFrom-Cue
     if (!$cue) { Write-Error "`"$fileIn`" isn't a valid cue file!"; return }
@@ -1198,7 +1193,7 @@ function Format-CueGaps {
         
     }
     $cuecontent = ConvertTo-Cue $cue
-    Set-Location $prevDir
+    Pop-Location
     [System.IO.File]::WriteAllLines([System.IO.Path]::Combine($destination, [System.IO.Path]::GetFileName($fileIn)), $cuecontent)
     Write-Host 'Done writing files to', $destination
 }
@@ -1213,20 +1208,24 @@ function Compress-Disc {
     This is just a silly thing to show that 7-Zip can often still compress such data better than CHD, if done right.
     #>
     param(
-        [string] $fileIn
+        [ValidateScript({ Test-Path -Path $_ -PathType Leaf })][Parameter(Mandatory, Position = 0)] [string] $fileIn,
+        [Parameter(Mandatory, Position = 1)] [string] $fileOut
     )
+    Push-Location (Split-Path $FileIn)
+
     $cue = Get-Content -LiteralPath $fileIn -Raw | ConvertFrom-Cue
     if (!$cue) { Write-Error "`"$fileIn`" isn't a valid cue file!"; return }
     $cue.Files | & { Process {
             $test = ($_.Tracks | Group-Object DataType)
             if ($test.count -eq 1 -and $test.Name -eq 'AUDIO') {
-                & "$(Join-Path $PSScriptRoot 7z.exe)" a test.7z "$($_.FileName)" -mf=Delta:4 -m0=LZMA:x9:mt2:d1g:lc1:lp2
+                & "$(Join-Path $PSScriptRoot 'VaultAssetes\7z.exe')" a "$fileOut" "$($_.FileName)" -mf=Delta:4 -m0=LZMA:x9:mt2:d1g:lc1:lp2
             }
             else {
-                & "$(Join-Path $PSScriptRoot 7z.exe)" a test.7z "$($_.FileName)" -m0=LZMA:x9:d1g
+                & "$(Join-Path $PSScriptRoot 'VaultAssetes\7z.exe')" a "$fileOut" "$($_.FileName)" -m0=LZMA:x9:d1g
             }
         } }
-    & "$(Join-Path $PSScriptRoot 7z.exe)" a test.7z "$fileIn" -m0=PPmD:x9:o16
+    & "$(Join-Path $PSScriptRoot 'VaultAssetes\7z.exe')" a "$fileOut" "$fileIn" -m0=PPmD:x9:o16
+    Pop-Location
 }
 #endregion Cue/Bin Tools
 #endregion Functions

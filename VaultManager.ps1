@@ -5,7 +5,7 @@ param (
 )
 
 $PSScriptRootEsc = $PSScriptRoot -replace '(\?|\*|\[)', '`$1'
-if ($WorkingDir) { Set-Location $WorkingDir }
+if ($WorkingDir) { Push-Location $WorkingDir }
 
 $host.ui.RawUI.WindowTitle = 'VaultManager Console'
 Import-Module (Join-Path $PSScriptRootEsc '.\VaultAssets\VaultManager.psm1') -Force
@@ -546,3 +546,4 @@ $GUI.WPF.AddHandler([System.Windows.Window]::LoadedEvent, [System.Windows.Routed
 
 #[void][WPIA.ConsoleUtils]::ShowWindow($hWnd, $ConsoleMode.MinimizeNoActivate) #will only minimize windows terminal with all its tabs -.-
 [void]$GUI.WPF.ShowDialog() #show window - main thread is blocked until closed
+Pop-Location
