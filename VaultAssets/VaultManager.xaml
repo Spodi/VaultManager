@@ -7,7 +7,7 @@
     xmlns:Converter="clr-namespace:CyberOasis.VaultManager;assembly="
     mc:Ignorable="d"
     Title="Vault Manager"
-    Background="#FF141414" MinWidth="405" Width="583" MinHeight="325" Height="364" WindowStartupLocation="CenterScreen" x:Name="Window" Icon="/icon.ico">
+    Background="#FF141414" MinWidth="305" Width="864" MinHeight="325" Height="665" WindowStartupLocation="CenterScreen" x:Name="Window" Icon="/icon.ico">
     <Window.TaskbarItemInfo>
         <TaskbarItemInfo Overlay="/icon.ico" />
     </Window.TaskbarItemInfo>
@@ -26,7 +26,7 @@
                 <Setter Property="Margin" Value="3,3,0,0" />
             </Style>
             <Style x:Key="CategoryLabel" TargetType="{x:Type Label}">
-                <Setter Property="FontSize" Value="16" />
+                <Setter Property="FontSize" Value="20" />
                 <Setter Property="FontWeight" Value="Bold" />
                 <Setter Property="VerticalContentAlignment" Value="Center" />
             </Style>
@@ -66,7 +66,7 @@
                 <GradientStop Color="#FF141414" Offset="1" />
             </LinearGradientBrush>
             <Style TargetType="{x:Type TabItem}">
-                <Setter Property="Foreground" Value="DarkGray" />
+                <Setter Property="Foreground" Value="Orange" />
                 <Setter Property="Background" Value="{DynamicResource TabItemBackground1}" />
             </Style>
             <LinearGradientBrush
@@ -76,20 +76,20 @@
                 <GradientStop Color="#7FFF00FF" Offset="0.5" />
             </LinearGradientBrush>
             <Style x:Key="UtilitiesCategoryBorder" TargetType="{x:Type Border}" BasedOn="{StaticResource CategoryBorder}">
-                <Setter Property="Background" Value="#191970" />
-                <Setter Property="BorderBrush" Value="White" />
+                <Setter Property="Background" Value="#5D2E8E" />
+                <Setter Property="BorderBrush" Value="Silver" />
             </Style>
             <Style x:Key="UtilitiesCategoryLabel" TargetType="{x:Type Label}" BasedOn="{StaticResource CategoryLabel}">
-                <Setter Property="Foreground" Value="Green" />
+                <Setter Property="Foreground" Value="#43b047" />
                 <Setter Property="Background" Value="Black" />
             </Style>
             <Style x:Key="UtilitiesCardOuterBorder" TargetType="{x:Type Border}" BasedOn="{StaticResource CardOuterBorder}">
-                <Setter Property="Background" Value="#6082B6" />
+                <Setter Property="Background" Value="#049CD8" />
                 <Setter Property="BorderBrush" Value="Black" />
             </Style>
             <Style x:Key="UtilitiesAppLabel" TargetType="{x:Type Label}">
-                <Setter Property="Foreground" Value="Orange" />
-                <Setter Property="Background" Value="#36454F" />
+                <Setter Property="Foreground" Value="#FBD000" />
+                <Setter Property="Background" Value="Black" />
             </Style>
             <!-- Try not to edit stuff below -->
 
