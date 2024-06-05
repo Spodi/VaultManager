@@ -99,7 +99,7 @@
 
     <Grid x:Name="MainGrid">
         <Grid.Background>
-            <ImageBrush Stretch="UniformToFill" ImageSource="/bg.png" />
+            <ImageBrush Stretch="UniformToFill" ImageSource="/bg.png" Opacity="0.65" />
         </Grid.Background>
         <TabControl x:Name="Tabs" Background="#CC141414">
             <TabItem Header="Un- / Folderize" Margin="-2,-2,-2,0" Foreground="DarkGray" Background="{DynamicResource TabItemBackground1}">

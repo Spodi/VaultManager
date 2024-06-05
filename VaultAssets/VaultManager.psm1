@@ -446,10 +446,10 @@ function Folderize {
         }
         $DestFile = [System.IO.Path]::Combine($DestFolder, $SourceFile.FileName)
         $newDest = $DestFolder
-        if (Test-Path $DestFile -PathType Leaf) {
+        if (Test-Path -LiteralPath $DestFile -PathType Leaf) {
             for ($i = 2; ; $i++) {
                 $newDest = ([System.IO.Path]::Combine($DestFolder, ($SourceFile.BaseName + " ($i)" + $SourceFile.Extension)))
-                if (!(Test-Path $newDest -PathType Leaf)) {
+                if (!(Test-Path -LiteralPath $newDest -PathType Leaf)) {
                     Write-Warning "`"$DestFile`" already exists in the destination. File will be renamed."
                     break
                 }
@@ -562,10 +562,10 @@ function UnFolderize {
         }
         $DestFile = [System.IO.Path]::Combine($DestFolder, $SourceFile.FileName)
         $newDest = $DestFolder
-        if (Test-Path $DestFile -PathType Leaf) {
+        if (Test-Path -LiteralPath $DestFile -PathType Leaf) {
             for ($i = 2; ; $i++) {
                 $newDest = ([System.IO.Path]::Combine($DestFolder, ($SourceFile.BaseName + " ($i)" + $SourceFile.Extension)))
-                if (!(Test-Path $newDest -PathType Leaf)) {
+                if (!(Test-Path -LiteralPath $newDest -PathType Leaf)) {
                     Write-Warning "`"$DestFile`" already exists in the destination. File will be renamed."
                     break
                 }
@@ -598,7 +598,7 @@ function Split-File {
     [CmdletBinding()]
     param(
         # The source file to get the data from.
-        [ValidateScript({ Test-Path -Path $_ -PathType Leaf })][Parameter(Mandatory, ValueFromPipeline, Position = 0)] [string]$fileIn,
+        [ValidateScript({ Test-Path -LiteralPath $_ -PathType Leaf })][Parameter(Mandatory, ValueFromPipeline, Position = 0)] [string]$fileIn,
         # Name and path of the new file. Won't overwrite existing files.
         [Parameter(Mandatory, Position = 1)] [string]$fileOut,
         # Starting position of the area to copy in bytes (from start of the file).
@@ -611,7 +611,7 @@ function Split-File {
         [System.IO.Directory]::SetCurrentDirectory((Get-Location))
     }
     Process {
-        if (Test-Path -Path $fileOut -PathType Leaf) {
+        if (Test-Path -LiteralPath $fileOut -PathType Leaf) {
             Write-Error "$fileOut already exists."
             return
         }
@@ -668,7 +668,7 @@ function Merge-File {
     begin {
         $prevDir = [System.IO.Directory]::GetCurrentDirectory()
         [System.IO.Directory]::SetCurrentDirectory((Get-Location))
-        if (Test-Path -Path $fileOut -PathType Leaf) {
+        if (Test-Path -LiteralPath $fileOut -PathType Leaf) {
             Write-Error "$fileOut already exists."
             return
         }
@@ -882,7 +882,7 @@ function New-CueFromFiles {
     [CmdletBinding()]
     param(
         # Array of file path to .bin files included in the .cue. e.g @(.\Track1.bin, .\Track2.bin) ...
-        [Parameter(Mandatory, ValueFromPipeline, Position = 0)][ValidateScript({ Test-Path -Path $_ -PathType Leaf })] [string[]] $SourceFiles
+        [Parameter(Mandatory, ValueFromPipeline, Position = 0)][ValidateScript({ Test-Path -LiteralPath $_ -PathType Leaf })] [string[]] $SourceFiles
     )
     begin {
         $prevDir = [System.IO.Directory]::GetCurrentDirectory()
@@ -1004,7 +1004,7 @@ function Split-CueBin {
     [CmdletBinding()]
     param(
         # Splits the files specified in this cue sheet according to the tracks.
-        [ValidateScript({ Test-Path -Path $_ -PathType Leaf })][Parameter(Mandatory, Position = 0)] [string]$fileIn,
+        [ValidateScript({ Test-Path -LiteralPath $_ -PathType Leaf })][Parameter(Mandatory, Position = 0)] [string]$fileIn,
         # Folder where to put in the new cuesheet and split files. Won't overwrite existing files.
         [Parameter(Mandatory, Position = 1)] [string]$destination
     )
@@ -1080,7 +1080,7 @@ function Merge-CueBin {
     [CmdletBinding()]
     param(
         # Merges the file specified in this cue sheet.
-        [ValidateScript({ Test-Path -Path $_ -PathType Leaf })][Parameter(Mandatory, Position = 0)] [string]$fileIn,
+        [ValidateScript({ Test-Path -LiteralPath $_ -PathType Leaf })][Parameter(Mandatory, Position = 0)] [string]$fileIn,
         # New name (and path) for the merged Cue sheet (.bin will get the same name). Won't overwrite existing files.
         [Parameter(Mandatory, Position = 1)] [string]$fileOut
     )
@@ -1152,7 +1152,7 @@ function Format-CueGaps {
     #>
     param(
         # Cuesheet to process.
-        [ValidateScript({ Test-Path -Path $_ -PathType Leaf })][Parameter(Mandatory, Position = 0)] [string] $fileIn,
+        [ValidateScript({ Test-Path -LiteralPath $_ -PathType Leaf })][Parameter(Mandatory, Position = 0)] [string] $fileIn,
         # Destination folder for the altered cue/bin files.
         [string] $destination
     )
@@ -1208,7 +1208,7 @@ function Compress-Disc {
     This is just a silly thing to show that 7-Zip can often still compress such data better than CHD, if done right.
     #>
     param(
-        [ValidateScript({ Test-Path -Path $_ -PathType Leaf })][Parameter(Mandatory, Position = 0)] [string] $fileIn,
+        [ValidateScript({ Test-Path -LiteralPath $_ -PathType Leaf })][Parameter(Mandatory, Position = 0)] [string] $fileIn,
         [Parameter(Mandatory, Position = 1)] [string] $fileOut
     )
     Push-Location (Split-Path $FileIn)

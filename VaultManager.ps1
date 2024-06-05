@@ -150,7 +150,7 @@ function New-WPFTab {
             
                     $manifest = $null
                     if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
-                        $manifest = Get-Content -Raw $manifestpath | ConvertFrom-Json
+                        $manifest = Get-Content -Raw -LiteralPath $manifestpath | ConvertFrom-Json
                     }
                     if ($manifest) {
                         if ($manifest.Name) {
@@ -214,7 +214,7 @@ function New-WPFTab {
                                 Style = $GUI.WPF.FindResource('CardButtonPanel')
                             }
 
-                            if ($_.Buttons[0] -and (Test-Path $_.Buttons[0].path)) {
+                            if ($_.Buttons[0] -and (Test-Path -LiteralPath $_.Buttons[0].path)) {
                                 $AppButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
                                                 Style               = $GUI.WPF.FindResource('MiscOpenButton')
                                                 Name                = 'MiscOpenButton'  
@@ -223,7 +223,7 @@ function New-WPFTab {
                                                 Tooltip             = ($_.Buttons[0]).Path.tostring()
                                             } } | Add-Member -PassThru 'Path' ($_.Buttons[0]).Path)) #feels like this shoudn't be possible. but it is!
                             }
-                            if ($_.Buttons[1] -and (Test-Path $_.Buttons[1].path)) {
+                            if ($_.Buttons[1] -and (Test-Path -LiteralPath $_.Buttons[1].path)) {
                                 $AppButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
                                                 Style               = $GUI.WPF.FindResource('MiscOpenButton')
                                                 Content             = ($_.Buttons[1]).Name
@@ -232,7 +232,7 @@ function New-WPFTab {
                                                 Tooltip             = ($_.Buttons[1]).Path.tostring()
                                             } } | Add-Member -PassThru 'Path' ($_.Buttons[1]).Path))
                             }
-                            if ($_.Buttons[2] -and (Test-Path $_.Buttons[2].path)) {
+                            if ($_.Buttons[2] -and (Test-Path -LiteralPath $_.Buttons[2].path)) {
                                 $AppButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
                                                 Style               = $GUI.WPF.FindResource('MiscOpenButton')
                                                 Content             = ($_.Buttons[2]).Name
@@ -312,7 +312,7 @@ $GUI.Nodes.Cuegen.Text = $defaultinput
 
 $extensionListW = @()
 if (Test-Path -PathType Leaf -LiteralPath $extensionListPath) {
-    $extensionListW = Get-Content -Raw $extensionListPath | ConvertFrom-Json
+    $extensionListW = Get-Content -Raw -LiteralPath $extensionListPath | ConvertFrom-Json
 }
 
 $GUI.Nodes.ListFolderizeExtWhite.ItemsSource = $extensionListW
@@ -334,7 +334,7 @@ $GUI.Nodes.FolderizeRegexBlack.Text = $RegexB
 
 #EmuStation Tab
 $EmulatorsFolder = Join-Path $PSScriptRootEsc 'Emulators'
-if (Test-Path $EmulatorsFolder -PathType Container) {
+if (Test-Path -LiteralPath $EmulatorsFolder -PathType Container) {
     $EmulatorsFolder | & { Process {
             $Data = [VaultManifest]@{
                 Folder = $_
@@ -345,7 +345,7 @@ if (Test-Path $EmulatorsFolder -PathType Container) {
             $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
 
             if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
-                $manifest = Get-Content -Raw $manifestpath | ConvertFrom-Json
+                $manifest = Get-Content -Raw -LiteralPath $manifestpath | ConvertFrom-Json
             }
             if ($manifest) {
                 if ($manifest.Name) {
@@ -372,7 +372,7 @@ if (Test-Path $EmulatorsFolder -PathType Container) {
 }
 
 $AddOnsFolder = Join-Path $PSScriptRootEsc 'AddOns'
-if (Test-Path $AddOnsFolder -PathType Container) {
+if (Test-Path -LiteralPath $AddOnsFolder -PathType Container) {
     #dynamic Tools tab
     $AddOns = Get-Folders $AddOnsFolder
     if ($AddOns) {
@@ -386,7 +386,7 @@ if (Test-Path $AddOnsFolder -PathType Container) {
                 $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
 
                 if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
-                    $manifest = Get-Content -Raw $manifestpath | ConvertFrom-Json
+                    $manifest = Get-Content -Raw -LiteralPath $manifestpath | ConvertFrom-Json
                 }
                 if ($manifest) {
                     if ($manifest.Name) {
@@ -422,7 +422,7 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                 switch -CaseSensitive -regex ($object.OriginalSource.Name) {
                     '^MiscOpenButton$' {
                         $path = Resolve-Path $object.OriginalSource.Path
-                        if (Test-Path -PathType Leaf $object.OriginalSource.Path) {
+                        if (Test-Path -PathType Leaf -LiteralPath $object.OriginalSource.Path) {
                             $AppStart = $path
                             $AppWorkingDir = Split-Path $path
                         }
@@ -502,7 +502,7 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                             UnFolderize @Values
                         }
                         if ($GUI.Nodes.FolderizeMove.IsChecked -and $GUI.Nodes.FolderizeEmptyFolders.IsChecked) {
-                            Remove-EmptyFolders (Get-ChildItem -Directory $GUI.Nodes.FolderizeInput.Text)
+                            Remove-EmptyFolders (Get-ChildItem -Directory -LiteralPath $GUI.Nodes.FolderizeInput.Text)
                         }
                         continue
                     }
