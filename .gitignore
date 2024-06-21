@@ -401,7 +401,11 @@ compiled/
 Tools/
 AddOns/
 Emulators/
+input/
+output/
 Bat_To_Exe_Converter_x64.exe
 settings
 *.cue
 VaultManager.7z
+7z.exe
+7z.dll
