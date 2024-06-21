@@ -15,8 +15,14 @@
     <Window.Resources>
         <ResourceDictionary>
 
+            <Converter:ValueConverterGroup x:Key="ValueConverterGroup" />
+            <Converter:InverseBooleanConverter x:Key="InverseBooleanConverter" />
             <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
             <Converter:SizeConverter x:Key="SizeConverter" />
+            <Converter:ValueConverterGroup x:Key="InvertVisibility">
+                <Converter:InverseBooleanConverter />
+                <BooleanToVisibilityConverter />
+            </Converter:ValueConverterGroup>
 
             <Style x:Key="CategoryBorder" TargetType="{x:Type Border}">
                 <Setter Property="Margin" Value="0,0,6,6" />
@@ -146,7 +152,7 @@
                                 <Label Content="Blacklist:" VerticalAlignment="Top" Padding="0,2,2,2" VerticalContentAlignment="Center" Grid.Column="1" HorizontalAlignment="Left" Margin="0,0,10,0" Grid.RowSpan="2"
                                     Visibility="{Binding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=RadioFolderizeBlacklist}" />
                                 <CheckBox x:Name="FolderizeRegex" Content="Use RegEx instead" HorizontalAlignment="Left" Padding="0,2,2,2" Margin="80,0,10,0" VerticalAlignment="Top" VerticalContentAlignment="Center" Grid.Column="1" Foreground="White"
-                                    Height="20" Grid.RowSpan="2" />
+                                    Height="20" Grid.RowSpan="2" IsChecked="True" Visibility="{Binding IsChecked, Converter={StaticResource InvertVisibility}, ElementName=RadioFolderizeAll}" />
                                 <ListView x:Name="ListFolderizeExtWhite" Margin="0,20,10,0" SelectionMode="Multiple" Grid.Column="1" Grid.RowSpan="2" MinHeight="75"
                                     MaxHeight="{Binding ActualHeight, ConverterParameter=250, Converter={StaticResource SizeConverter}, ElementName=Window, Mode=OneWay}">
                                     <ListView.Style>
