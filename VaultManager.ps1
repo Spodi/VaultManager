@@ -473,10 +473,10 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                             Source      = $GUI.Nodes.FolderizeInput.Text
                             Destination = $GUI.Nodes.FolderizeOutput.Text
                             Move        = $GUI.Nodes.FolderizeMove.IsChecked
-                            RegEx       = $GUI.Nodes.FolderizeRegex.IsChecked
                         }
                         if ($GUI.Nodes.RadioFolderizeWhitelist.IsChecked) {
                             if ($GUI.Nodes.FolderizeRegex.IsChecked) {
+                                $Values.add('RegEx', $true)
                                 $Values.add('whitelist', $GUI.Nodes.FolderizeRegexWhite)
                             }
                             else {
@@ -485,6 +485,7 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                         }
                         elseif ($GUI.Nodes.RadioFolderizeBlacklist.IsChecked) {
                             if ($GUI.Nodes.FolderizeRegex.IsChecked) {
+                                $Values.add('RegEx', $true)
                                 $Values.add('blacklist', $GUI.Nodes.FolderizeRegexBlack)
                             }
                             else {
