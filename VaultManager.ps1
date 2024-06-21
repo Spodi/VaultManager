@@ -485,7 +485,7 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                         }
                         elseif ($GUI.Nodes.RadioFolderizeBlacklist.IsChecked) {
                             if ($GUI.Nodes.FolderizeRegex.IsChecked) {
-                                $Values.add('whitelist', $GUI.Nodes.FolderizeRegexBlack)
+                                $Values.add('blacklist', $GUI.Nodes.FolderizeRegexBlack)
                             }
                             else {
                                 $Values.add('blacklist', $GUI.Nodes.ListFolderizeExtBlack.ItemsSource.where({ $_[1] }).ForEach({ $_[0] }))
