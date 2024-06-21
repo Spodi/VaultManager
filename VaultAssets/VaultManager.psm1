@@ -415,7 +415,7 @@ function Folderize {
             $FileList = . {
                 foreach ($file in $SourceFiles) {
                     # We don't want to use Get-Item here, as that reads every file with much more metadata than we need.
-                    if ([System.IO.Path]::GetExtension($file) -notin $black) {
+                    if ([System.IO.Path]::GetExtension($file) -notin $blacklist) {
                         $file
                     }
                 }   
@@ -540,7 +540,7 @@ function UnFolderize {
             $FileList = . {
                 foreach ($file in $SourceFiles) {
                     # We don't want to use Get-Item here, as that reads every file with much more metadata than we need.
-                    if ([System.IO.Path]::GetExtension($file) -notin $black) {
+                    if ([System.IO.Path]::GetExtension($file) -notin $blacklist) {
                         $file
                     }
                 }   
