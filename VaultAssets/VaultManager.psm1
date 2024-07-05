@@ -370,7 +370,9 @@ function Folderize {
         [switch]    $all,
         # Moves files instead of copying them. Be careful with that.
         [Parameter(ParameterSetName = 'white')] [Parameter(ParameterSetName = 'black')] [Parameter(ParameterSetName = 'all')]
-        [switch]    $Move
+        [switch]    $Move,
+        [Parameter(ParameterSetName = 'white')] [Parameter(ParameterSetName = 'black')] [Parameter(ParameterSetName = 'all')]
+        [switch]    $ESDE
     )
 
     Write-Host -NoNewline 'Retrieving file list, this can take a while... '
@@ -382,7 +384,7 @@ function Folderize {
     }
     elseif ($whitelist) {
         if ($RegEx) {
-            $FileList = . {
+            $FileList = & {
                 foreach ($file in $SourceFiles) {
                     if ($file -match $whitelist) {
                         $file
@@ -391,7 +393,7 @@ function Folderize {
             }
         }      
         else {
-            $FileList = . {
+            $FileList = & {
                 foreach ($file in $SourceFiles) {
                     # We don't want to use Get-Item here, as that reads every file with much more metadata than we need.
                     if ([System.IO.Path]::GetExtension($file) -in $whitelist) {
@@ -403,7 +405,7 @@ function Folderize {
     }
     elseif ($blacklist) {
         if ($RegEx) {
-            $FileList = . {
+            $FileList = & {
                 foreach ($file in $SourceFiles) {
                     if ($file -notmatch $blacklist) {
                         $file
@@ -412,7 +414,7 @@ function Folderize {
             }
         }      
         else {
-            $FileList = . {
+            $FileList = & {
                 foreach ($file in $SourceFiles) {
                     # We don't want to use Get-Item here, as that reads every file with much more metadata than we need.
                     if ([System.IO.Path]::GetExtension($file) -notin $blacklist) {
@@ -426,29 +428,75 @@ function Folderize {
     if (!(Test-Path -LiteralPath $destination -PathType Container)) {
         New-Item $destination -ItemType Directory | Out-Null
     }
-    if (!$filelist) { return }
+    if (!$FileList) { return }
+    
+    $FileList = $FileList | & { Process {
+            # Remove file extension for the new folder name. Will fail on "nameless" files, like .htaccess
+            # We don't want to use Get-Item here, as that reads every file with much more metadata than we need.
+            $List = [PSCustomObject]@{
+                Name        = $_
+                FileName    = [System.IO.Path]::GetFileName($_)
+                BaseName    = [System.IO.Path]::GetFileNameWithoutExtension($_).TrimEnd()
+                Extension   = [System.IO.Path]::GetExtension($_)
+                CleanedName = $null
+                DestFolder  = $null
+            }
+            # also remove the Disc tag e.g. "(Disc 1)" at the end, to get all discs in one folder
+            # Join-Path doesn't have -LiteralPath, so use the .Net version instead...
+            $List.CleanedName = ($List.BaseName -replace '\s*\((?:Disc|Track) \d?\d(?: of \d?\d)?\)', '' -replace '\s\s+', '\s').Trim()
 
-    foreach ($input in $FileList) {
-        # Remove file extension for the new folder name. Will fail on "nameless" files, like .htaccess
-        # We don't want to use Get-Item here, as that reads every file with much more metadata than we need.
-        $SourceFile = @{}
-        $SourceFile.Name = $input
-        $SourceFile.FileName = [System.IO.Path]::GetFileName($input)
-        $SourceFile.BaseName = [System.IO.Path]::GetFileNameWithoutExtension($input).TrimEnd()
-        $SourceFile.Extension = [System.IO.Path]::GetExtension($input)
-        # also remove the Disc tag e.g. "(Disc 1)" at the end, to get all discs in one folder
-        # Join-Path doesn't have -LiteralPath, so use the .Net version instead...
-        $DestFolder = [System.IO.Path]::Combine($destination, ($SourceFile.BaseName -replace '\s*\((?:Disc|Track) \d?\d(?: of \d?\d)?\)', '' -replace '\s\s+', '\s').Trim())
+            $List
+        } }
+
+    if ($ESDE) {
+       
+        $FileList = $FileList | Group-Object CleanedName | & { Process {
+                $name = $null
+                if ($_.count -gt 1) {
+
+                    foreach ($file in $_.Group) {
+                        if ($file.Extension -eq '.m3u') {
+                            $name = $file.FileName
+                            breaK
+                        }
+                        elseif ($file.Extension -eq '.gdi') {
+                            $name = $file.FileName
+                            breaK
+                        }
+                        elseif ($file.Extension -eq '.cue') {
+                            $name = $file.FileName
+                            breaK
+                        } 
+                    } 
+                }
+
+                if ($name) {
+                    $_.Group | & { Process { $_.DestFolder = [System.IO.Path]::Combine($destination, $name) } }
+                }
+                else {
+                    $_.Group | & { Process { $_.DestFolder = [System.IO.Path]::Combine($destination, $_.CleanedName) } }
+                }
+                $_.Group
+            } } 
+    }
+    else {
+        $Filelist = $Filelist | & { Process {
+                $_.DestFolder = ([System.IO.Path]::Combine($destination, $_.CleanedName))
+                $_
+            } }
+    }
+        
+    foreach ($SourceFile in $FileList) {
 
 
-        if (!(Test-Path -LiteralPath $DestFolder -PathType Container)) {
-            New-Item $DestFolder -ItemType Directory | Out-Null
-        }
-        $DestFile = [System.IO.Path]::Combine($DestFolder, $SourceFile.FileName)
-        $newDest = $DestFolder
+        if (!(Test-Path -LiteralPath $SourceFile.DestFolder -PathType Container)) {
+            New-Item $SourceFile.DestFolder -ItemType Directory | Out-Null
+        }    
+        $DestFile = [System.IO.Path]::Combine($SourceFile.DestFolder, $SourceFile.FileName)
+        $newDest = $SourceFile.DestFolder
         if (Test-Path -LiteralPath $DestFile -PathType Leaf) {
             for ($i = 2; ; $i++) {
-                $newDest = ([System.IO.Path]::Combine($DestFolder, ($SourceFile.BaseName + " ($i)" + $SourceFile.Extension)))
+                $newDest = ([System.IO.Path]::Combine($SourceFile.DestFolder, ($SourceFile.BaseName + " ($i)" + $SourceFile.Extension)))
                 if (!(Test-Path -LiteralPath $newDest -PathType Leaf)) {
                     Write-Warning "`"$DestFile`" already exists in the destination. File will be renamed."
                     break
@@ -507,7 +555,7 @@ function UnFolderize {
     }
     elseif ($whitelist) {
         if ($RegEx) {
-            $FileList = . {
+            $FileList = & {
                 foreach ($file in $SourceFiles) {
                     if ($file -match $whitelist) {
                         $file
@@ -516,7 +564,7 @@ function UnFolderize {
             }
         }      
         else {
-            $FileList = . {
+            $FileList = & {
                 foreach ($file in $SourceFiles) {
                     # We don't want to use Get-Item here, as that reads every file with much more metadata than we need.
                     if ([System.IO.Path]::GetExtension($file) -in $whitelist) {
@@ -528,7 +576,7 @@ function UnFolderize {
     }
     elseif ($blacklist) {
         if ($RegEx) {
-            $FileList = . {
+            $FileList = & {
                 foreach ($file in $SourceFiles) {
                     if ($file -notmatch $blacklist) {
                         $file
@@ -537,7 +585,7 @@ function UnFolderize {
             }
         }      
         else {
-            $FileList = . {
+            $FileList = & {
                 foreach ($file in $SourceFiles) {
                     # We don't want to use Get-Item here, as that reads every file with much more metadata than we need.
                     if ([System.IO.Path]::GetExtension($file) -notin $blacklist) {
@@ -550,21 +598,28 @@ function UnFolderize {
 
     if (!$filelist) { return }
     foreach ($input in $FileList) {
-        $SourceFile = @{}
-        $SourceFile.Name = $input
-        $SourceFile.FileName = [System.IO.Path]::GetFileName($input)
-        $SourceFile.BaseName = [System.IO.Path]::GetFileNameWithoutExtension($input).TrimEnd()
-        $SourceFile.Extension = [System.IO.Path]::GetExtension($input)
-
-        $DestFolder = $destination
-        if (!(Test-Path -LiteralPath $destination -PathType Container)) {
-            New-Item $destination -ItemType Directory | Out-Null
+        # Remove file extension for the new folder name. Will fail on "nameless" files, like .htaccess
+        # We don't want to use Get-Item here, as that reads every file with much more metadata than we need.
+        $SourceFile = [PSCustomObject]@{
+            Name        = $input
+            FileName    = [System.IO.Path]::GetFileName($input)
+            BaseName    = [System.IO.Path]::GetFileNameWithoutExtension($input).TrimEnd()
+            Extension   = [System.IO.Path]::GetExtension($input)
+            CleanedName = $null
+            DestFolder  = $destination
         }
-        $DestFile = [System.IO.Path]::Combine($DestFolder, $SourceFile.FileName)
-        $newDest = $DestFolder
+        # also remove the Disc tag e.g. "(Disc 1)" at the end, to get all discs in one folder
+        # Join-Path doesn't have -LiteralPath, so use the .Net version instead...
+        $SourceFile.CleanedName = ($SourceFile.BaseName -replace '\s*\((?:Disc|Track) \d?\d(?: of \d?\d)?\)', '' -replace '\s\s+', '\s').Trim()
+
+        if (!(Test-Path -LiteralPath $SourceFile.DestFolder -PathType Container)) {
+            New-Item $SourceFile.DestFolder -ItemType Directory | Out-Null
+        }
+        $DestFile = [System.IO.Path]::Combine($SourceFile.DestFolder, $SourceFile.FileName)
+        $newDest = $SourceFile.DestFolder
         if (Test-Path -LiteralPath $DestFile -PathType Leaf) {
             for ($i = 2; ; $i++) {
-                $newDest = ([System.IO.Path]::Combine($DestFolder, ($SourceFile.BaseName + " ($i)" + $SourceFile.Extension)))
+                $newDest = ([System.IO.Path]::Combine($SourceFile.DestFolder, ($SourceFile.BaseName + " ($i)" + $SourceFile.Extension)))
                 if (!(Test-Path -LiteralPath $newDest -PathType Leaf)) {
                     Write-Warning "`"$DestFile`" already exists in the destination. File will be renamed."
                     break
@@ -584,7 +639,7 @@ function UnFolderize {
 }
 #endregion File managing
 
-#region Merging/splitting files
+#region Merging/splitting file
 function Split-File {
     <#
     .SYNOPSIS

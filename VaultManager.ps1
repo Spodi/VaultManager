@@ -474,6 +474,7 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                             Source      = $GUI.Nodes.FolderizeInput.Text
                             Destination = $GUI.Nodes.FolderizeOutput.Text
                             Move        = $GUI.Nodes.FolderizeMove.IsChecked
+                            ESDE        = $GUI.Nodes.FolderizeESDE.IsChecked
                         }
                         if ($GUI.Nodes.RadioFolderizeWhitelist.IsChecked) {
                             if ($GUI.Nodes.FolderizeRegex.IsChecked) {
@@ -501,6 +502,8 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                             Folderize @Values
                         }
                         else {
+                            $Values.remove('ESDE')
+                            $Values.remove('all', $true)
                             UnFolderize @Values
                         }
                         if ($GUI.Nodes.FolderizeMove.IsChecked -and $GUI.Nodes.FolderizeEmptyFolders.IsChecked) {
