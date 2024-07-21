@@ -191,6 +191,33 @@ class CueSheet {
 #endregion Classes
 
 #region Functions
+
+#region Misc
+function Get-7zip {
+    if ((Test-Path 'VaultAssets\7z.exe' -PathType Leaf) -and (Test-Path 'VaultAssets\7z.dll' -PathType Leaf)) {
+        return (Join-Path $PSScriptRoot 'VaultAssets\7z.exe')
+    }
+    if (Test-Path 'Registry::HKEY_CURRENT_USER\Software\7-Zip') {
+        $path = (Get-ItemProperty 'Registry::HKEY_CURRENT_USER\Software\7-Zip').Path64
+        if (!$path) {
+            $path = (Get-ItemProperty 'Registry::HKEY_CURRENT_USER\Software\7-Zip').Path 
+        }
+        if ((Test-Path (Join-Path $path '7z.exe') -PathType Leaf) -and (Test-Path (Join-Path $path '7z.dll') -PathType Leaf)) {
+            return (Join-Path $path '7z.exe')
+        }
+    }  
+    if (Test-Path 'Registry::HKEY_LOCAL_MACHINE\Software\7-Zip') {
+        $path = (Get-ItemProperty 'Registry::HKEY_LOCAL_MACHINE\Software\7-Zip').Path64
+        if (!$path) {
+            $path = (Get-ItemProperty 'Registry::HKEY_LOCAL_MACHINE\Software\7-Zip').Path 
+        }
+        if ((Test-Path (Join-Path $path '7z.exe') -PathType Leaf) -and (Test-Path (Join-Path $path '7z.dll') -PathType Leaf)) {
+            return (Join-Path $path '7z.exe')
+        }
+    }
+}
+#endregion
+
 #region file/folder list
 function Get-Files {
     <#
@@ -1267,19 +1294,19 @@ function Compress-Disc {
         [Parameter(Mandatory, Position = 1)] [string] $fileOut
     )
     Push-Location (Split-Path $FileIn)
-
+    $7zip = Get-7zip
     $cue = Get-Content -LiteralPath $fileIn -Raw | ConvertFrom-Cue
     if (!$cue) { Write-Error "`"$fileIn`" isn't a valid cue file!"; return }
     $cue.Files | & { Process {
             $test = ($_.Tracks | Group-Object DataType)
             if ($test.count -eq 1 -and $test.Name -eq 'AUDIO') {
-                & "$(Join-Path $PSScriptRoot 'VaultAssetes\7z.exe')" a "$fileOut" "$($_.FileName)" -mf=Delta:4 -m0=LZMA:x9:mt2:d1g:lc1:lp2
+                & "$7zip" a "$fileOut" "$($_.FileName)" -mf=Delta:4 -m0=LZMA:x9:mt2:d1g:lc1:lp2
             }
             else {
-                & "$(Join-Path $PSScriptRoot 'VaultAssetes\7z.exe')" a "$fileOut" "$($_.FileName)" -m0=LZMA:x9:d1g
+                & "$7zip" a "$fileOut" "$($_.FileName)" -m0=LZMA:x9:d1g
             }
         } }
-    & "$(Join-Path $PSScriptRoot 'VaultAssetes\7z.exe')" a "$fileOut" "$fileIn" -m0=PPmD:x9:o16
+    & "$7zip" a "$fileOut" "$fileIn" -m0=PPmD:x9:o16
     Pop-Location
 }
 #endregion Cue/Bin Tools
