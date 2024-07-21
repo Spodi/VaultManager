@@ -1128,7 +1128,7 @@ function Split-CueBin {
 function Merge-CueBin {
     <#
     .SYNOPSIS
-    Merges multiple raw .bin file according to the provided .cue.
+    Merges multiple raw .bin files according to the provided .cue.
     .LINK
     Split-CueBin
     #>
