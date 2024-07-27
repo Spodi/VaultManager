@@ -317,6 +317,7 @@ $GUI.Nodes = $XAML.SelectNodes('//*[@x:Name]', $GUI.NsMgr) | ForEach-Object {
 #region Code behind
 $defaultinput = Join-Path (Get-Location) 'input'
 $defaultoutput = Join-Path (Get-Location) 'output'
+$defaultbackup = Join-Path (Get-Location) 'backup'
 $extensionListPath = (Join-Path $PSScriptRootEsc '.\VaultAssets\FileExtensions.json')
 
 $GUI.Nodes.FolderizeInput.Text = $defaultinput
@@ -325,6 +326,7 @@ $GUI.Nodes.OutputMerge.Text = Join-Path $defaultoutput 'Merged.cue'
 $GUI.Nodes.Outputsplit.Text = $defaultoutput
 $GUI.Nodes.FolderizeOutput.Text = $defaultoutput
 $GUI.Nodes.Cuegen.Text = $defaultinput
+$GUI.Nodes.Backup.Text = $defaultbackup
 
 $extensionListW = @()
 if (Test-Path -PathType Leaf -LiteralPath $extensionListPath) {
@@ -552,6 +554,12 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                         }
                         else { Write-Error 'No .bin or .raw files in soucre directory.' }
                         continue
+                    }
+                    '^ButtonBackupStart$' {
+                        $datestring = Get-Date -Format 'yyyyMMdd-HHmmss'
+                        $filename = "Backup_$datestring.7z"
+                        $path = Join-Path $GUI.Nodes.Backup.Text $filename
+                        Compress-7z -root $PSScriptRoot $path '*/VaultManifest.json' -Type Text
                     }
                     Default { Write-Host "Unhandled Button: $_" }
                 }

@@ -194,8 +194,8 @@ class CueSheet {
 
 #region Misc
 function Get-7zip {
-    if ((Test-Path 'VaultAssets\7z.exe' -PathType Leaf) -and (Test-Path 'VaultAssets\7z.dll' -PathType Leaf)) {
-        return (Join-Path $PSScriptRoot 'VaultAssets\7z.exe')
+    if ((Test-Path (Join-Path $PSScriptRoot '7z.exe') -PathType Leaf) -and (Test-Path (Join-Path $PSScriptRoot '7z.dll') -PathType Leaf)) {
+        return (Join-Path $PSScriptRoot '7z.exe')
     }
     if (Test-Path 'Registry::HKEY_CURRENT_USER\Software\7-Zip') {
         $path = (Get-ItemProperty 'Registry::HKEY_CURRENT_USER\Software\7-Zip').Path64
@@ -215,6 +215,60 @@ function Get-7zip {
             return (Join-Path $path '7z.exe')
         }
     }
+}
+
+function Compress-7z {
+    [CmdletBinding(PositionalBinding = $false)]
+    param (
+        [Parameter(Mandatory, ParameterSetName = 'simple', Position = 0)][Parameter(Mandatory, ParameterSetName = 'advanced', Position = 0)]   [string] $DestinationPath,
+        [Parameter(Mandatory, ValueFromPipeline, ParameterSetName = 'simple', Position = 1)][Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'advanced', Position = 1)]   [string[]] $path,
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'advanced')][AllowEmptyString()]   [string] $type,
+        [Parameter(ParameterSetName = 'simple')][Parameter(ParameterSetName = 'advanced')]   [string] $root,
+        [Parameter(ParameterSetName = 'simple')][Parameter(ParameterSetName = 'advanced')]   [switch] $nonSolid
+    ) 
+
+    begin {
+        if (![System.IO.Path]::IsPathRooted($DestinationPath)) {
+            $DestinationPath = Join-Path (Get-Location) $DestinationPath
+        }
+        $7zip = Get-7zip
+        if (!$7zip) {
+            Write-Error 'No 7zip found!'
+            break
+        }
+        if (!$root) {
+            $root = '.'
+        }
+        if ($nonSolid) {
+            $solid = 'off'
+        }
+        else {
+            $solid = 'on'
+        }
+        $list = [System.Collections.ArrayList]::new()
+    }
+    process {
+        [void]$List.add((
+                [PSCustomObject]@{
+                    Path = $path
+                    Type = $type
+                }
+            ))
+    }
+    end {
+        $list = $list | Group-Object Type
+        foreach ($fileType in $List) {
+            switch ($filetype.name) {
+                'CD-Audio' { $options = '-mf=Delta:4 -m0=LZMA:x9:mt2:d1g:lc1:lp2'; break } 
+                'Text' { $options = '-m0=PPmD:x9:o16'; break }
+                'Binary' { $options = '-m0=LZMA:mt2:x9:d1g'; break }
+                Default { $options = '-m0=LZMA:mt2:x9:d1g'; break }  
+            }
+            $files = "`"$($fileType.Group.path -join '" "')`""
+            Start-Process -Wait -WorkingDirectory $root -FilePath $7zip -ArgumentList @('a', '-r0', '-mqs', "-ms=$solid", $options, "`"$DestinationPath`"", $files)
+        }
+    }
+
 }
 #endregion
 
@@ -1293,21 +1347,28 @@ function Compress-Disc {
         [ValidateScript({ Test-Path -LiteralPath $_ -PathType Leaf })][Parameter(Mandatory, Position = 0)] [string] $fileIn,
         [Parameter(Mandatory, Position = 1)] [string] $fileOut
     )
-    Push-Location (Split-Path $FileIn)
-    $7zip = Get-7zip
     $cue = Get-Content -LiteralPath $fileIn -Raw | ConvertFrom-Cue
     if (!$cue) { Write-Error "`"$fileIn`" isn't a valid cue file!"; return }
     $cue.Files | & { Process {
             $test = ($_.Tracks | Group-Object DataType)
             if ($test.count -eq 1 -and $test.Name -eq 'AUDIO') {
-                & "$7zip" a "$fileOut" "$($_.FileName)" -mf=Delta:4 -m0=LZMA:x9:mt2:d1g:lc1:lp2
+                [PSCustomObject]@{
+                    Path = $_.FileName
+                    Type = 'CD-Audio'
+                }
             }
             else {
-                & "$7zip" a "$fileOut" "$($_.FileName)" -m0=LZMA:x9:d1g
+                [PSCustomObject]@{
+                    Path = $_.FileName
+                    Type = 'Binary'
+                }
             }
-        } }
-    & "$7zip" a "$fileOut" "$fileIn" -m0=PPmD:x9:o16
-    Pop-Location
+        } End {
+            [PSCustomObject]@{
+                Path = Split-Path $FileIn -Leaf
+                Type = 'Text'
+            }
+        } } | Compress-7z $fileOut -root (Split-Path $FileIn) -nonSolid
 }
 #endregion Cue/Bin Tools
 #endregion Functions
