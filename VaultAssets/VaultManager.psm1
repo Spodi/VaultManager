@@ -197,6 +197,9 @@ function Get-7zip {
     if ((Test-Path (Join-Path $PSScriptRoot '7z.exe') -PathType Leaf) -and (Test-Path (Join-Path $PSScriptRoot '7z.dll') -PathType Leaf)) {
         return (Join-Path $PSScriptRoot '7z.exe')
     }
+    if ((Test-Path (Join-Path $PSScriptRoot '7za.exe') -PathType Leaf)) {
+        return (Join-Path $PSScriptRoot '7za.exe')
+    }
     if (Test-Path 'Registry::HKEY_CURRENT_USER\Software\7-Zip') {
         $path = (Get-ItemProperty 'Registry::HKEY_CURRENT_USER\Software\7-Zip').Path64
         if (!$path) {
@@ -222,7 +225,7 @@ function Compress-7z {
     param (
         [Parameter(Mandatory, ParameterSetName = 'simple', Position = 0)][Parameter(Mandatory, ParameterSetName = 'advanced', Position = 0)]   [string] $DestinationPath,
         [Parameter(Mandatory, ValueFromPipeline, ParameterSetName = 'simple', Position = 1)][Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'advanced', Position = 1)]   [string[]] $path,
-        [Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'advanced')][AllowEmptyString()]   [string] $type,
+        [Parameter(ValueFromPipelineByPropertyName, ParameterSetName = 'advanced')][AllowEmptyString()]   [string] $type,
         [Parameter(ParameterSetName = 'simple')][Parameter(ParameterSetName = 'advanced')]   [string] $root,
         [Parameter(ParameterSetName = 'simple')][Parameter(ParameterSetName = 'advanced')]   [switch] $nonSolid
     ) 
