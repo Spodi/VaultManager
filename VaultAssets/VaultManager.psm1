@@ -260,6 +260,14 @@ function Compress-7z {
     }
     end {
         $list = $list | Group-Object Type
+        $i = 0
+        $ProgressParameters = @{
+            Activity         = 'Compressing'
+            Status           = "$i / $($List.count)"
+            PercentComplete  = ($i * 100 / $List.count)
+        }
+        Write-Progress @ProgressParameters
+
         foreach ($fileType in $List) {
             switch ($filetype.name) {
                 'CD-Audio' { $options = '-mf=Delta:4 -m0=LZMA:x9:mt2:d1g:lc1:lp2'; break } 
@@ -268,8 +276,23 @@ function Compress-7z {
                 Default { $options = '-m0=LZMA:mt2:x9:d1g'; break }  
             }
             $files = "`"$($fileType.Group.path -join '" "')`""
-            Start-Process -Wait -WorkingDirectory $root -FilePath $7zip -ArgumentList @('a', '-r0', '-mqs', "-ms=$solid", $options, "`"$DestinationPath`"", $files)
+            $Process = Start-Process -PassThru -Wait -WorkingDirectory $root -FilePath $7zip -ArgumentList @('a', '-r0', '-mqs', "-ms=$solid", $options, "`"$DestinationPath`"", $files)
+            
+            if ($Process.ExitCode -ne 0) {
+                Write-Progress @ProgressParameters -Completed
+                Write-Error "7zip aborted with an Exit-Code of $($Process.ExitCode)."
+                return
+            }
+
+            $i++
+            $ProgressParameters = @{
+                Activity         = 'Compressing'
+                Status           = "$i / $($List.count)"
+                PercentComplete  = ($i * 100 / $List.count)
+            }
+            Write-Progress @ProgressParameters
         }
+        Write-Progress @ProgressParameters -Completed
     }
 
 }
@@ -569,7 +592,14 @@ function Folderize {
                 $_
             } }
     }
-        
+    $i = 0
+    $ProgressParameters = @{
+        Activity         = 'Folderize'
+        Status           = "$i / $($FileList.count) Items"
+        PercentComplete  = ($i * 100 / $FileList.count)
+    }
+    Write-Progress @ProgressParameters
+
     foreach ($SourceFile in $FileList) {
 
 
@@ -595,7 +625,15 @@ function Folderize {
             Write-Host -Separator '' "[Copy]`t `"", $SourceFile.Name, '" to "', ($newDest -replace '/', '\'), '"'
             Copy-Item -LiteralPath $SourceFile.Name $newDest
         }
+        $i++
+        $ProgressParameters = @{
+            Activity         = 'Folderize'
+            Status           = "$i / $($FileList.count) Items"
+            PercentComplete  = ($i * 100 / $FileList.count)
+        }
+        Write-Progress @ProgressParameters
     }
+    Write-Progress @ProgressParameters -Completed
     Write-Host 'Finished organizing.' 
 }
 function UnFolderize {
@@ -681,6 +719,15 @@ function UnFolderize {
     }
 
     if (!$filelist) { return }
+
+    $i = 0
+    $ProgressParameters = @{
+        Activity         = 'Unfolderize'
+        Status           = "$i / $($FileList.count) Items"
+        PercentComplete  = ($i * 100 / $FileList.count)
+    }
+    Write-Progress @ProgressParameters
+
     foreach ($input in $FileList) {
         # Remove file extension for the new folder name. Will fail on "nameless" files, like .htaccess
         # We don't want to use Get-Item here, as that reads every file with much more metadata than we need.
@@ -718,7 +765,15 @@ function UnFolderize {
             Write-Host -Separator '' "[Copy]`t `"", $SourceFile.Name, '" to "', ($newDest -replace '/', '\'), '"'
             Copy-Item -LiteralPath $SourceFile.Name $newDest
         }
+        $i++
+        $ProgressParameters = @{
+            Activity         = 'Unfolderize'
+            Status           = "$i / $($FileList.count) Items"
+            PercentComplete  = ($i * 100 / $FileList.count)
+        }
+        Write-Progress @ProgressParameters
     }
+    Write-Progress @ProgressParameters -Completed
     Write-Host 'Finished organizing.' 
 }
 #endregion File managing
