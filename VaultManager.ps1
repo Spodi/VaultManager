@@ -157,6 +157,11 @@ function New-WPFTab {
                 $categoryFolder = Split-Path($categoryPath) -Leaf
                 #$readmepath = [System.IO.Path]::Combine($_, 'Readme.txt')
                 $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
+                $hasFiles = [System.IO.Directory]::EnumerateFileSystemEntries($_) | & { Process { if ($_ -NotMatch 'VaultManifest\.json$') { $_ } } }
+                if ($hasFiles.count -lt 1) {
+                    Write-Information "No objects in $_"
+                    return
+                }
                 $Data = [VaultManifest]@{
                     Name     = Split-Path $_ -Leaf 
                     Category = $categoryFolder
