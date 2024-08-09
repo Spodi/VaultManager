@@ -192,7 +192,7 @@ class CueSheet {
 
 #region Functions
 
-#region Misc
+#region Compress
 function Get-7zip {
     if ((Test-Path (Join-Path $PSScriptRoot '7z.exe') -PathType Leaf) -and (Test-Path (Join-Path $PSScriptRoot '7z.dll') -PathType Leaf)) {
         return (Join-Path $PSScriptRoot '7z.exe')
@@ -550,7 +550,7 @@ function Folderize {
             }
             # also remove the Disc tag e.g. "(Disc 1)" at the end, to get all discs in one folder
             # Join-Path doesn't have -LiteralPath, so use the .Net version instead...
-            $List.CleanedName = ($List.BaseName -replace '\s*\((?:Disc|Track) \d?\d(?: of \d?\d)?\)', '' -replace '\s\s+', '\s').Trim()
+            $List.CleanedName = ($List.BaseName -replace '\s*\((?:Disc|Track) \d?\d(?: of \d?\d)?\)', '' -replace '\.part\d', '' -replace '\s\s+', '\s').Trim()
 
             $List
         } }
@@ -741,7 +741,7 @@ function UnFolderize {
         }
         # also remove the Disc tag e.g. "(Disc 1)" at the end, to get all discs in one folder
         # Join-Path doesn't have -LiteralPath, so use the .Net version instead...
-        $SourceFile.CleanedName = ($SourceFile.BaseName -replace '\s*\((?:Disc|Track) \d?\d(?: of \d?\d)?\)', '' -replace '\s\s+', '\s').Trim()
+        $SourceFile.CleanedName = ($SourceFile.BaseName -replace '\s*\((?:Disc|Track) \d?\d(?: of \d?\d)?\)', '' -replace '\.part\d', '' -replace '\s\s+', '\s').Trim()
 
         if (!(Test-Path -LiteralPath $SourceFile.DestFolder -PathType Container)) {
             New-Item $SourceFile.DestFolder -ItemType Directory | Out-Null
