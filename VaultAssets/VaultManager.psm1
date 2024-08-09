@@ -262,9 +262,9 @@ function Compress-7z {
         $list = $list | Group-Object Type
         $i = 0
         $ProgressParameters = @{
-            Activity         = 'Compressing'
-            Status           = "$i / $($List.count)"
-            PercentComplete  = ($i * 100 / $List.count)
+            Activity        = 'Compressing'
+            Status          = "$i / $($List.count)"
+            PercentComplete = ($i * 100 / $List.count)
         }
         Write-Progress @ProgressParameters
 
@@ -286,9 +286,9 @@ function Compress-7z {
 
             $i++
             $ProgressParameters = @{
-                Activity         = 'Compressing'
-                Status           = "$i / $($List.count)"
-                PercentComplete  = ($i * 100 / $List.count)
+                Activity        = 'Compressing'
+                Status          = "$i / $($List.count)"
+                PercentComplete = ($i * 100 / $List.count)
             }
             Write-Progress @ProgressParameters
         }
@@ -594,9 +594,9 @@ function Folderize {
     }
     $i = 0
     $ProgressParameters = @{
-        Activity         = 'Folderize'
-        Status           = "$i / $($FileList.count) Items"
-        PercentComplete  = ($i * 100 / $FileList.count)
+        Activity        = 'Folderize'
+        Status          = "$i / $($FileList.count) Items"
+        PercentComplete = ($i * 100 / $FileList.count)
     }
     Write-Progress @ProgressParameters
 
@@ -627,9 +627,9 @@ function Folderize {
         }
         $i++
         $ProgressParameters = @{
-            Activity         = 'Folderize'
-            Status           = "$i / $($FileList.count) Items"
-            PercentComplete  = ($i * 100 / $FileList.count)
+            Activity        = 'Folderize'
+            Status          = "$i / $($FileList.count) Items"
+            PercentComplete = ($i * 100 / $FileList.count)
         }
         Write-Progress @ProgressParameters
     }
@@ -722,9 +722,9 @@ function UnFolderize {
 
     $i = 0
     $ProgressParameters = @{
-        Activity         = 'Unfolderize'
-        Status           = "$i / $($FileList.count) Items"
-        PercentComplete  = ($i * 100 / $FileList.count)
+        Activity        = 'Unfolderize'
+        Status          = "$i / $($FileList.count) Items"
+        PercentComplete = ($i * 100 / $FileList.count)
     }
     Write-Progress @ProgressParameters
 
@@ -767,9 +767,9 @@ function UnFolderize {
         }
         $i++
         $ProgressParameters = @{
-            Activity         = 'Unfolderize'
-            Status           = "$i / $($FileList.count) Items"
-            PercentComplete  = ($i * 100 / $FileList.count)
+            Activity        = 'Unfolderize'
+            Status          = "$i / $($FileList.count) Items"
+            PercentComplete = ($i * 100 / $FileList.count)
         }
         Write-Progress @ProgressParameters
     }
