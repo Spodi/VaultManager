@@ -1,198 +1,4 @@
-#region Classes
-class CueTime : IComparable {
-    #region Definition
-    #[ValidateRange(0, 3921501716349819)] #int64 for TotalBytes
-    [ValidateRange(0, 7843003432699639)] #uint64 for TotalBytes
-    [Int64]$TotalFrames = 0
-    #endregion Definition
-    #region Constructors
-    CueTime() {}
-
-    CueTime([SByte]$TotalFrames) {
-        $this.TotalFrames = $TotalFrames
-    }
-    CueTime([int16]$TotalFrames) {
-        $this.TotalFrames = $TotalFrames
-    }
-    CueTime([int32]$TotalFrames) {
-        $this.TotalFrames = $TotalFrames
-    }
-    CueTime([int64]$TotalFrames) {
-        $this.TotalFrames = $TotalFrames
-    }
-    CueTime([Byte]$TotalFrames) {
-        $this.TotalFrames = $TotalFrames
-    }
-    CueTime([uint16]$TotalFrames) {
-        $this.TotalFrames = $TotalFrames
-    }
-    CueTime([uint32]$TotalFrames) {
-        $this.TotalFrames = $TotalFrames
-    }
-    CueTime([uint64]$TotalFrames) {
-        $this.TotalFrames = $TotalFrames
-    }
-    CueTime([double]$TotalFrames) {
-        $this.TotalFrames = $TotalFrames
-    }
-    CueTime([float]$TotalFrames) {
-        $this.TotalFrames = $TotalFrames
-    }
-
-    CueTime([TimeSpan]$Time) {
-        [UInt32]$Modulo = 0
-        $frames = [System.Numerics.BigInteger]::DivRem($Time.Ticks * 75, 10000000, [ref]$Modulo)
-        if ($Modulo) {
-            Write-Warning 'Lost precission. Converting from [TimeSpan] will only be accurate in increments of 80ms!'
-        }
-        $this.TotalFrames = $frames
-
-    }
-
-    CueTime([string]$timeString) {
-        #if ($timeString -match '^\d+:0*[1-5]?[1-9]]:0*([0-9]|[1-][0-9]|7[1-4])$') {
-        if ($timeString -match '^\d+:\d+:\d+$') {    
-            [Double[]]$splitTimes = $timeString -split ':'
-            #if ($splitTimes[0] -gt 1742889651711 -or $splitTimes[0] -lt 0) { throw 'Invalid Range for "Minutes". Valid range: 0 to 1742889651711.' }
-            if ($splitTimes[1] -gt 59 -or $splitTimes[1] -lt 0) { throw 'Invalid Range for "Seconds". Valid range: 0 to 59.' }
-            if ($splitTimes[2] -gt 74 -or $splitTimes[2] -lt 0) { throw 'Invalid Range for "Frames". Valid range: 0 to 74.' }
-            $frames = [int64]($splitTimes[0] * 60 * 75 + $splitTimes[1] * 75 + $splitTimes[2])
-            if ($frames -gt 7843003432699639) { throw 'Time too long. Maximum time is 1742889651711:01:64.' }
-            $this.TotalFrames = $frames
-        
-        }
-        else { throw 'Invalid Format. Must be "<Minutes>:<Seconds>:<CueFrames>".' }
-    }
-    #endregion Constructors
-    #Region Methods
-    [int]CompareTo($other) {
-        return $this.TotalFrames.CompareTo($other.TotalFrames)
-    }
-    [string]ToString() {
-        return ('{0:d2}' -f $this.Minutes), ('{0:d2}' -f $this.Seconds), ('{0:d2}' -f $this.Frames) -join ':'
-    }
-    [TimeSpan]ToTimeSpan() {
-        return [int64]($this.TotalFrames * 10000000 / 75)
-    }
-    static [CueTime]op_Addition([CueTime]$a, [CueTime]$b) {
-        return $a.TotalFrames + $b.TotalFrames
-    }
-    static [CueTime]op_Subtraction([CueTime]$a, [CueTime]$b) {
-        return $a.TotalFrames - $b.TotalFrames
-    }
-    static [CueTime]op_Division([CueTime]$a, [double]$b) {
-        return $a.TotalFrames / $b
-    }
-    static [CueTime]op_Multiply([CueTime]$a, [double]$b) {
-        return $a.TotalFrames * $b
-    }
-    [bool]Equals([object]$other) {
-        return $this.TotalFrames -eq $other.TotalFrames
-    }
-
-    static [CueTime]FromBytes([uint64]$Bytes) {
-        [UInt16]$Modulo = 0
-        [UInt64]$sectors = [System.Numerics.BigInteger]::DivRem($bytes, 2352, [ref]$Modulo)
-        if ($Modulo) {
-            #[ValidateRange(0,18446744073709550928)]$Bytes = $bytes
-            if ($Bytes -gt 18446744073709550928) {
-                throw "A value of $Bytes Bytes is out of range. Must be less or equal to 18446744073709550928 Bytes."
-            }
-            Write-Warning 'No exact multiplicative from a sector size of 2352 bytes. Will round up to the next full sector (cue frame) size.'
-            $sectors += 1
-        }
-        return ([uint64]$sectors)
-    }
-    #endregion Methods
-}
-Update-TypeData -TypeName 'CueTime' -MemberType ScriptProperty -MemberName 'Minutes' -Value {
-    [int64]([Math]::floor($this.TotalFrames / 4500))
-} -Force
-Update-TypeData -TypeName 'CueTime' -MemberType ScriptProperty -MemberName 'Seconds' -Value {
-    [Byte]([Math]::floor(($this.TotalFrames % 4500) / 75))
-} -Force
-Update-TypeData -TypeName 'CueTime' -MemberType ScriptProperty -MemberName 'Frames' -Value {
-    [Byte]([Math]::floor($this.TotalFrames % 75))
-} -Force
-Update-TypeData -TypeName 'CueTime' -MemberType ScriptProperty -MemberName 'TotalBytes' -Value {
-    [uint64]([uint64]$this.TotalFrames * 2352)
-} -Force
-
-
-class CueIndex {
-    #region Definition
-    [Byte]$Number
-    [CueTime]$Offset
-    #endregion Definition
-    #region Constructors
-
-    #endregion Constructors
-    #Region Methods
-    [string]ToString() {
-        return -join ('{0:d2}' -f $this.Number), $this.Offset
-    }
-    #endregion Methods    
-}
-class CueTrack {
-    #region Definition
-    [Byte]$Number
-    [ValidateSet('AUDIO', 'CDG', 'MODE1/2048', 'MODE1/2352', 'MODE2/2048', 'MODE2/2324', 'MODE2/2336', 'MODE2/2352', 'CDI/2336', 'CDI/2352')][String]$DataType
-    [ValidateSet('DCP', '4CH', 'PRE', 'SCMS', 'DATA')][String[]]$Flags
-    [ValidatePattern('^[a-zA-Z0-9]{5}\d{7}$|^$')][String]$ISRC
-    [ValidateLength(0, 80)][string]$Performer
-    [ValidateLength(0, 80)][string]$Title
-    [ValidateLength(0, 80)][string]$Songwriter
-    [CueTime]$PreGap
-    [CueIndex[]]$Indexes
-    [CueTime]$PostGap
-    #endregion Definition
-    #region Constructors
-
-    #endregion Constructors
-    #Region Methods
-    [string]ToString() {
-        return -join ('{0:d2}' -f $this.Number), $this.DataType
-    }
-    #endregion Methods    
-}
-class CueFile {
-    #region Definition
-    [String]$FileName
-    [ValidateSet('BINARY', 'MOTOROLA', 'AIFF', 'WAVE', 'MP3')][String]$FileType
-    [CueTrack[]]$Tracks
-    #endregion Definition
-    #region Constructors
-    [string]ToString() {
-
-        return '"', $this.FileName, '" ', $this.FileType -join ''
-    }
-    #endregion Constructors
-    #Region Methods
-
-    #endregion Methods 
-}
-class CueSheet {
-    #region Definition
-    [ValidatePattern('^\d{13}$|^$')][String]$Catalog
-    [String]$CDTextFile
-    [ValidateLength(0, 80)][string]$Performer
-    [ValidateLength(0, 80)][string]$Title
-    [ValidateLength(0, 80)][string]$Songwriter
-    [CueFile[]]$Files
-    hidden [bool]$IsDreamcast
-    #endregion Definition
-    #region Constructors
-
-    #endregion Constructors
-    #Region Methods
-
-    #endregion Methods 
-}
-#endregion Classes
-
-#region Functions
-
-#region Compress
+using module '.\Cue.psm1'
 function Get-7zip {
     if ((Test-Path (Join-Path $PSScriptRoot '7z.exe') -PathType Leaf) -and (Test-Path (Join-Path $PSScriptRoot '7z.dll') -PathType Leaf)) {
         return (Join-Path $PSScriptRoot '7z.exe')
@@ -896,178 +702,7 @@ function Merge-File {
 #endregion Merging/splitting files
 
 #region Cue sheets
-function ConvertFrom-Cue {
-    <#
-    .SYNOPSIS
-    Converts a Cue sheet formatted string to a collection of CueFile objects.
-    .LINK
-    ConvertTo-Cue
-    .EXAMPLE
-    Get-Content "Twisted Metal 4 (USA).cue" -raw | ConvertFrom-Cue
-    Output:
-    FileName                             FileType Tracks
-    --------                             -------- ------
-    Twisted Metal 4 (USA) (Track 01).bin BINARY   {1 MODE2/2352}
-    Twisted Metal 4 (USA) (Track 02).bin BINARY   {2 AUDIO}
-    Twisted Metal 4 (USA) (Track 03).bin BINARY   {3 AUDIO}
-    Twisted Metal 4 (USA) (Track 04).bin BINARY   {4 AUDIO}
-    Twisted Metal 4 (USA) (Track 05).bin BINARY   {5 AUDIO}
-    Twisted Metal 4 (USA) (Track 06).bin BINARY   {6 AUDIO}
-    Twisted Metal 4 (USA) (Track 07).bin BINARY   {7 AUDIO}
-    #>
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline)]   [string] $InputObject 
-    )
-    Process {
-        $cueSheet = [CueSheet]::new()
-        $trackNo = 0
-        $fileNo = 0
-        $cueTxt = $InputObject -split '\r\n|\r|\n'
-        Set-Variable i -Option AllScope
-        for ($i = 0; $i -lt $cueTxt.count; $i++) {
-            $line = $cueTxt[$i].trim() -split '\s+(?=(?:[^"]|"[^"]+")+$)' -replace '"', ''
-            switch ($line[0]) {
-                'Catalog' { $cueSheet.Catalog = $line[1]; continue }
-                'CDTextFile' { $cueSheet.CDTextFile = $line[1]; continue }
-                'Performer' { $cueSheet.Performer = $line[1]; continue }
-                'Title' { $cueSheet.Title = $line[1]; continue }
-                'Songwriter' { $cueSheet.Songwriter = $line[1]; continue }
-                'File' {
-                    $cueSheet.Files += [CueFile]@{
-                        FileName = $line[1]
-                        FileType = $line[2]
-                    }
-                    :TrackLoop for ($i++; $i -lt $cueTxt.count; $i++) {
-                        $line = $cueTxt[$i].trim() -split '\s+(?=(?:[^"]|"[^"]+")+$)'
-                        switch ($line[0]) {
-                            'Track' { 
-                                $cueSheet.Files[$FileNo].Tracks += [CueTrack]@{
-                                    Number   = $line[1]
-                                    DataType = $line[2]
-                                }
-                                :IndexLoop for ($i++; $i -lt $cueTxt.count; $i++) {
-                                    $line = $cueTxt[$i].trim() -split '\s+(?=(?:[^"]|"[^"]+")+$)'
-                                    switch ($line[0]) {
-                                        'Index' {
-                                            $cueSheet.Files[$FileNo].Tracks[$TrackNo].Indexes += [CueIndex]@{
-                                                Number = $line[1]
-                                                Offset = [CueTime]$line[2]
-                                            }
-                                        }
-                                        'Flags' { $cueSheet.Files[$FileNo].Tracks[$TrackNo].Flags = $line[1..($line.count - 1)]; continue }
-                                        'ISRC' { $cueSheet.Files[$FileNo].Tracks[$TrackNo].ISRC = $line[1]; continue }                                        
-                                        'PreGap' { $cueSheet.Files[$FileNo].Tracks[$TrackNo].PreGap = $line[1]; continue }
-                                        'Postgap' { $cueSheet.Files[$FileNo].Tracks[$TrackNo].PostGap = $line[1]; continue }
-                                        'Performer' { $cueSheet.Files[$FileNo].Tracks[$TrackNo].Performer = $line[1]; continue }
-                                        'Title' { $cueSheet.Files[$FileNo].Tracks[$TrackNo].Title = $line[1]; continue }
-                                        'Songwriter' { $cueSheet.Files[$FileNo].Tracks[$TrackNo].Songwriter = $line[1]; continue }
-                                        'Track' { $i--; break IndexLoop }
-                                        'File' { $i--; break TrackLoop }
-                                        'Rem' { continue }
-                                        '' { continue }
-                                        Default { Write-Warning ("Line $($i): Invalid token in INDEX: $_") } 
-                                    }
-                                }
-                                $trackNo++; continue
-                            }
-                            'File' { $i--; break TrackLoop }
-                            'Rem' { continue }
-                            '' { continue }
-                            Default { Write-Warning ("Line $($i): Invalid token in FILE: $_") }
-                        }
-                    } 
-                    $fileNo++; continue
-                }         
-                'Rem' {
-                    if ($line[1] -eq 'SINGLE-DENSITY' -and $line[2] -eq 'AREA') {
-                        $cueSheet.IsDreamcast = $true
-                    }
-                    continue
-                }
-                '' { continue }
-                Default { Write-Warning ("Line $($i): Invalid token in ROOT: $_") }        
-            }
-        }
-        $cueSheet 
-    }
-}
-function ConvertTo-Cue {
-    <#
-    .SYNOPSIS
-    Converts a collection of CueFile objects to a Cue sheet string.
-    .LINK
-    ConvertFrom-Cue
-    .EXAMPLE
-    Get-content "Twisted Metal 4 (USA).cue" -raw | convertfrom-Cue | ConvertTo-cue
-    Output:
-    FILE "Twisted Metal 4 (USA) (Track 01).bin" BINARY
-      TRACK 1 MODE2/2352
-        INDEX 1 00:00:00
-    FILE "Twisted Metal 4 (USA) (Track 02).bin" BINARY
-      TRACK 2 AUDIO
-        INDEX 0 00:00:00
-        INDEX 1 00:02:00
-    FILE "Twisted Metal 4 (USA) (Track 03).bin" BINARY
-      TRACK 3 AUDIO
-        INDEX 0 00:00:00
-        INDEX 1 00:02:00
-    FILE "Twisted Metal 4 (USA) (Track 04).bin" BINARY
-      TRACK 4 AUDIO
-        INDEX 0 00:00:00
-        INDEX 1 00:02:00
-    FILE "Twisted Metal 4 (USA) (Track 05).bin" BINARY
-      TRACK 5 AUDIO
-        INDEX 0 00:00:00
-        INDEX 1 00:02:00
-    FILE "Twisted Metal 4 (USA) (Track 06).bin" BINARY
-      TRACK 6 AUDIO
-        INDEX 0 00:00:00
-        INDEX 1 00:02:00
-    FILE "Twisted Metal 4 (USA) (Track 07).bin" BINARY
-      TRACK 7 AUDIO
-        INDEX 0 00:00:00
-        INDEX 1 00:02:00
-    #>
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory, ValueFromPipeline)]   $InputObject
-    )
-    Process {
-        $FileNum = 0
-        If ($InputObject.Catalog) { "CATALOG $($InputObject.Catalog)" }
-        If ($InputObject.CDTextFile) { "CDTEXTFILE `"$($InputObject.CDTextFile)`"" }
-        If ($InputObject.Performer) { "PERFORMER `"$($InputObject.Performer)`"" }
-        If ($InputObject.Title) { "TITLE `"$($InputObject.Title)`"" }
-        If ($InputObject.Songwriter) { "SONGWRITER `"$($InputObject.Songwriter)`"" }
-        foreach ($file in $InputObject.Files) {
-            # This isn't optimal, lol. But DreamCast emulators only work with on split bins anyway.
-            if ($InputObject.IsDreamcast) {  
-                $FileNum++
-            }
-            if ($FileNum -eq 1) {
-                'REM SINGLE-DENSITY AREA'
-            }
-            elseif ($FileNum -eq 3) {
-                'REM HIGH-DENSITY AREA'
-            }
-            "FILE $file"
-            foreach ($track in $file.Tracks) {
-                "  TRACK $track"
-                If ($track.ISRC) { "    ISRC $($track.ISRC)" }
-                If ($track.Performer) { "    PERFORMER `"$($track.Performer)`"" }
-                If ($track.Title) { "    TITLE `"$($track.Title)`"" }
-                If ($track.Songwriter) { "    SONGWRITER `"$($track.Songwriter)`"" }
-                If ($track.Flags) { "    FLAGS $($track.Flags -join ' ')" }
-                If ($track.PreGap -gt 0) { "    PREGAP $($track.PreGap)" }
-                foreach ($index in $track.indexes) {
-                    "    INDEX $index"
-                }
-                If ($track.PostGap -gt 0) { "    POSTGAP $($track.PostGap)" }
-            }
-        }
-    }
-}
+
 function New-CueFromFiles {
     <#
     .SYNOPSIS
@@ -1085,7 +720,7 @@ function New-CueFromFiles {
         $DreamcastPattern = [byte[]]@(83, 69, 71, 65, 32, 83, 69, 71, 65, 75, 65, 84, 65, 78, 65, 32, 83, 69, 71, 65, 32, 69, 78, 84, 69, 82, 80, 82, 73, 83, 69) #SEGA SEGAKATANA SEGA ENTERPRISE
         $buffer = New-Object Byte[] 352800
         $trackNo = 1
-        $cueSheet = [CueSheet]::new()
+        $cueSheet = [Cue.Sheet]::new()
     }
     Process {
         foreach ($path in $SourceFiles) {
@@ -1142,36 +777,36 @@ function New-CueFromFiles {
                 $silence = $false
             }
             
-            $CueSheet.Files += [CueFile]@{
+            $CueSheet.Files += [Cue.File]@{
                 FileName = $inFile.Name
                 FileType = 'BINARY'
 
-                Tracks   = [CueTrack]@{
+                Tracks   = [Cue.Track]@{
                     Number   = $trackNo
                     DataType = $DataType
                     Indexes  = . {
                         if ($DreamcastData) {
-                            @([CueIndex]@{
+                            @([Cue.Index]@{
                                     Number = 0
-                                    Offset = [CueTime]'00:00:00'
-                                }, [CueIndex]@{
+                                    Offset = [Cue.Time]'00:00:00'
+                                }, [Cue.Index]@{
                                     Number = 1
-                                    Offset = [CueTime]'00:03:00'
+                                    Offset = [Cue.Time]'00:03:00'
                                 })   
                         }
                         elseif ($silence) {
-                            @([CueIndex]@{
+                            @([Cue.Index]@{
                                     Number = 0
-                                    Offset = [CueTime]'00:00:00'
-                                }, [CueIndex]@{
+                                    Offset = [Cue.Time]'00:00:00'
+                                }, [Cue.Index]@{
                                     Number = 1
-                                    Offset = [CueTime]'00:02:00'
+                                    Offset = [Cue.Time]'00:02:00'
                                 })
                         }
                         else {
-                            @([CueIndex]@{
+                            @([Cue.Index]@{
                                     Number = 1
-                                    Offset = [CueTime]'00:00:00'
+                                    Offset = [Cue.Time]'00:00:00'
                                 })
                         }
                     }
@@ -1211,7 +846,7 @@ function Split-CueBin {
             if ($_ -ne 'BINARY' -and $_ -ne 'MOTOROLA') { $false } 
         } end { $true } } | Select-Object -First 1
     if (!$allBinary) { Write-Error "`"$fileIn`" Includes files that are not flagged as raw binary. Wrong or corrupt cue sheet?"; return }
-    $newcue = [CueSheet]@{
+    $newcue = [Cue.Sheet]@{
         Catalog    = $cue.Catalog
         CDTextFile = $cue.CDTextFile
         Performer  = $cue.Performer
@@ -1235,10 +870,10 @@ function Split-CueBin {
             $size = $nextPos - $curPos
             try { Split-File $fileInfo $newName -Start $curPos -size $size -ErrorAction Stop }
             catch { Write-Host 'Error in Split-File:'; Write-Error $_; return }
-            $newCue.Files += [CueFile]@{
+            $newCue.Files += [Cue.File]@{
                 FileName = [System.IO.Path]::GetFileName($newName)
                 FileType = $File.FileType
-                Tracks   = [CueTrack]@{
+                Tracks   = [Cue.Track]@{
                     Number     = $File.Tracks[$i].Number
                     DataType   = $File.Tracks[$i].DataType
                     Performer  = $File.Tracks[$i].Performer
@@ -1249,9 +884,9 @@ function Split-CueBin {
                     PostGap    = $File.Tracks[$i].PostGap
 
                     Indexes    = & { ForEach ($index in $File.Tracks[$i].Indexes) { 
-                            [CueIndex]@{
+                            [Cue.Index]@{
                                 Number = $Index.Number
-                                Offset = $index.Offset - [CueTime]::FromBytes($curPos)
+                                Offset = $index.Offset - [Cue.Time]::FromBytes($curPos)
                             }
                         } }
                 }
@@ -1291,13 +926,13 @@ function Merge-CueBin {
         } end { $true } } | Select-Object -First 1
     if (!$allBinary) { Write-Error "`"$fileIn`" Can't merge images that includes non-binary files."; return }
     $newName = [System.IO.Path]::Combine($destination, ([System.IO.Path]::GetFileNameWithoutExtension($Fileout) + '.bin'))
-    $newCue = [CueSheet]@{
+    $newCue = [Cue.Sheet]@{
         Catalog    = $cue.Catalog
         CDTextFile = $cue.CDTextFile
         Performer  = $cue.Performer
         Title      = $cue.Title
         Songwriter = $cue.Songwriter
-        Files      = [CueFile]@{
+        Files      = [Cue.File]@{
             FileName = [System.IO.Path]::GetFileName($newName)
             FileType = $Cue.Files[0].FileType
             Tracks   = & {
@@ -1307,7 +942,7 @@ function Merge-CueBin {
                     if (!$fileInfo) { Write-Error "Could not find `"$file`". Wrong cue sheet or renamed/moved files?"; return }
 
                     ForEach ($track in $File.Tracks) {
-                        [CueTrack]@{
+                        [Cue.Track]@{
                             Number     = $track.Number
                             DataType   = $track.DataType
                             Performer  = $track.Performer
@@ -1317,9 +952,9 @@ function Merge-CueBin {
                             PreGap     = $track.PreGap
                             PostGap    = $track.PostGap
                             Indexes    = & { ForEach ($index in $track.Indexes) { 
-                                    [CueIndex]@{
+                                    [Cue.Index]@{
                                         Number = $Index.Number
-                                        Offset = $index.Offset + [CueTime]::FromBytes($prevFile)
+                                        Offset = $index.Offset + [Cue.Time]::FromBytes($prevFile)
                                     }
                                 } }
                         }
@@ -1368,7 +1003,7 @@ function Format-CueGaps {
                         $Index.Offset = $Index.Offset + $PreGap
                     }                    
                     $Track.Indexes = . {
-                        [CueIndex]@{
+                        [Cue.Index]@{
                             Number = 0
                             Offset = 0
                         }
@@ -1429,4 +1064,17 @@ function Compress-Disc {
         } } | Compress-7z $fileOut -root (Split-Path $FileIn) -nonSolid
 }
 #endregion Cue/Bin Tools
+
+function ConvertFrom-m3u {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]   [string] $InputObject 
+    )
+    Process {
+        $paths = $InputObject -split '\r\n|\r|\n'
+        for ($i = 0; $i -lt $paths.count; $i++) {
+        
+        }
+    }
+}
 #endregion Functions
