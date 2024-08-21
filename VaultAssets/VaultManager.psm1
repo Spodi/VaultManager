@@ -1065,16 +1065,4 @@ function Compress-Disc {
 }
 #endregion Cue/Bin Tools
 
-function ConvertFrom-m3u {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline)]   [string] $InputObject 
-    )
-    Process {
-        $paths = $InputObject -split '\r\n|\r|\n'
-        for ($i = 0; $i -lt $paths.count; $i++) {
-        
-        }
-    }
-}
 #endregion Functions
