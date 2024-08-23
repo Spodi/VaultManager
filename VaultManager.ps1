@@ -492,8 +492,8 @@ $RegexB = $GUI.Nodes.ListFolderizeExtBlack.ItemsSource.where({ $_[1] }).ForEach(
 $GUI.Nodes.FolderizeRegexBlack.Text = $RegexB
 
 #Add Auto-Tabs
-Add-VaultAppTab -Directory (Join-Path $PSScriptRootEsc 'AddOns')
 Add-VaultAppTab -TabName 'Emulators' -Directory (Join-Path $PSScriptRootEsc 'Emulators')
+Add-VaultAppTab -Directory (Join-Path $PSScriptRootEsc 'AddOns')
 
 #give anything clickable an event
 $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent, [System.Windows.RoutedEventHandler]({
