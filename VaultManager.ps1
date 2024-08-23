@@ -53,6 +53,7 @@ class ManifestButton {
 class VaultManifest {
     [string] $Name
     [string] $Category
+    [string] $Color
     [string] $Folder
     [ValidateCount(3, 3)][ManifestButton[]] $Buttons = @([ManifestButton]@{
             Name = 'Start'
@@ -168,11 +169,20 @@ $GUI.Nodes = $XAML.SelectNodes('//*[@x:Name]', $GUI.NsMgr) | ForEach-Object {
 function New-WPFTab {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory, ValueFromPipeline)] [string]    $Name
+        [Parameter(Mandatory, ValueFromPipeline)] [string]    $Name,
+        [Parameter()] [string]    $color
     ) 
     process {
-        $Tab = [System.Windows.Controls.TabItem]@{
-            Header = $Name
+        if ($color) {
+            $Tab = [System.Windows.Controls.TabItem]@{
+                Header     = $Name
+                Foreground = $color
+            }
+        }
+        else {
+            $Tab = [System.Windows.Controls.TabItem]@{
+                Header = $Name
+            }
         }
         $TabScroll = [System.Windows.Controls.ScrollViewer]@{
             VerticalScrollBarVisibility = 'Auto'
@@ -321,6 +331,9 @@ function Get-VaultAppTabData {
                     if ($manifest.Name) {
                         $Data.Name = $manifest.Name
                     }
+                    if ($manifest.color) {
+                        $Data.Color = $manifest.Color
+                    }
                     if ($manifest.Buttons) {
                         for ($i = 0; $i -lt 3; $i++) {
                             If ($manifest.Buttons[$i]) {
@@ -438,7 +451,12 @@ function Add-VaultAppTab {
             if (!$VaultAppData) {
                 return
             }
-            $Tab = New-WPFTab $Data.Name
+            if ($Data.Color) {
+                $Tab = New-WPFTab $Data.Name $Data.Color
+            }
+            else {
+                $Tab = New-WPFTab $Data.Name
+            }
             $VaultAppData | Group-Object Category | & { Process {
                 
                     $Category = New-WPFCategory $_.Name
