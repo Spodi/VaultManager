@@ -52,9 +52,8 @@ class ManifestButton {
 }
 class VaultManifest {
     [string] $Name
-    [string] $Category
-    [string] $Color
     [string] $Folder
+    [int16]  $SortIndex = 0
     [ValidateCount(3, 3)][ManifestButton[]] $Buttons = @([ManifestButton]@{
             Name = 'Start'
             Path = './Start.bat'
@@ -67,6 +66,18 @@ class VaultManifest {
             Name = 'Readme'
             Path = './Readme.txt'
         })
+}
+class VaultCategorySort {
+    [string] $Name
+    [int16]  $SortIndex = 0
+}
+class VaultTabManifest : VaultManifest {
+    [string] $Color
+    [VaultCategorySort[]] $CategorySort
+}
+class VaultCardManifest : VaultManifest {
+    [string] $Category
+    hidden [int16] $CategoryIndex = 0
 }
 
 class WPFTab {
@@ -295,7 +306,7 @@ function New-WPFCard {
     }
 }
 
-function Get-VaultAppTabData {
+function Get-VaultTabData {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory, ValueFromPipeline)] [string] $Directory,
@@ -317,7 +328,7 @@ function Get-VaultAppTabData {
             return
         }
         $AddOns | & { Process {
-                $Data = [VaultManifest]@{
+                $Data = [VaultTabManifest]@{
                     Folder = $_
                     Name   = Split-Path $_ -Leaf
                 }
@@ -331,8 +342,14 @@ function Get-VaultAppTabData {
                     if ($manifest.Name) {
                         $Data.Name = $manifest.Name
                     }
-                    if ($manifest.color) {
+                    if ($manifest.Sortindex) {
+                        $Data.Sortindex = $manifest.Sortindex
+                    }
+                    if ($manifest.Color) {
                         $Data.Color = $manifest.Color
+                    }
+                    if ($manifest.CategorySort) {
+                        $Data.CategorySort = $manifest.CategorySort
                     }
                     if ($manifest.Buttons) {
                         for ($i = 0; $i -lt 3; $i++) {
@@ -357,7 +374,8 @@ function Get-VaultAppData {
     param(
         [Parameter()] [string] $TabName,
         [Parameter(Mandatory, ValueFromPipelineByPropertyName)] [string] $Folder,
-        [Parameter(Mandatory, ValueFromPipelineByPropertyName)] [ManifestButton[]] $Buttons
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)] [ManifestButton[]] $Buttons,
+        [Parameter(ValueFromPipelineByPropertyName)] [VaultCategorySort[]] $CategorySort
     )
     Process {
         if (!(Test-Path $Folder -PathType Container)) {
@@ -388,7 +406,7 @@ function Get-VaultAppData {
                     Write-Warning "No objects in $_"
                     return
                 }
-                $Data = [VaultManifest]@{
+                $Data = [VaultCardManifest]@{
                     Name     = Split-Path $_ -Leaf 
                     Category = $categoryFolder
                     Buttons  = [ManifestButton[]]($Buttons | ConvertTo-Json -Depth 1 | ConvertFrom-Json) # Simplest way to make a deep copy instead of a reference
@@ -404,6 +422,9 @@ function Get-VaultAppData {
                 if ($manifest) {
                     if ($manifest.Name) {
                         $Data.Name = $manifest.Name
+                    }
+                    if ($manifest.Sortindex) {
+                        $Data.Sortindex = $manifest.Sortindex
                     }
                     if ($manifest.Category) {
                         $Data.Category = $manifest.Category
@@ -421,6 +442,7 @@ function Get-VaultAppData {
                         }
                     }
                 }
+                $Data.CategoryIndex = ($CategorySort | Where-Object 'Name' -EQ $Data.Category | Select-Object -First 1).SortIndex
                 Write-Output $Data
             } }
     }
@@ -434,19 +456,19 @@ function Add-VaultAppTab {
     )
     Process {
         if ($TabName) {
-            $TabData = Get-VaultAppTabData $Directory $TabName
+            $TabData = Get-VaultTabData $Directory $TabName | Sort-Object SortIndex, Name
         }
         else {
-            $TabData = Get-VaultAppTabData $Directory
+            $TabData = Get-VaultTabData $Directory | Sort-Object SortIndex, Name
         }
-    
+
         foreach ($Data in $TabData) { 
             
             if ($TabName) {
-                $VaultAppData = $Data | Get-VaultAppData $TabName
+                $VaultAppData = $Data | Get-VaultAppData $TabName | Sort-Object CategoryIndex, Category, SortIndex, Name
             }
             else {
-                $VaultAppData = $Data | Get-VaultAppData
+                $VaultAppData = $Data | Get-VaultAppData | Sort-Object CategoryIndex, Category, SortIndex, Name
             }
             if (!$VaultAppData) {
                 return
@@ -461,7 +483,7 @@ function Add-VaultAppTab {
                 
                     $Category = New-WPFCategory $_.Name
 
-                    foreach ($Group in ($_.Group | Sort-Object Name)) {
+                    foreach ($Group in ($_.Group)) {
                         $Category.InnerObject.AddChild(($Group | New-WPFCard))
                     }
 
