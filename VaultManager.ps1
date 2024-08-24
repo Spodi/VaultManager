@@ -77,7 +77,7 @@ class VaultTabManifest : VaultManifest {
 }
 class VaultCardManifest : VaultManifest {
     [string] $Category
-    hidden [int16] $CategoryIndex = 0
+    [int16]  $CategoryIndex = 0
 }
 
 class WPFTab {
