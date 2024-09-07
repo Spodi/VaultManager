@@ -398,6 +398,9 @@ function Folderize {
                 $_
             } }
     }
+
+    if (!$filelist) { return }
+    
     $i = 0
     $ProgressParameters = @{
         Activity        = 'Folderize'
