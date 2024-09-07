@@ -370,15 +370,15 @@ function Folderize {
                     foreach ($file in $_.Group) {
                         if ($file.Extension -eq '.m3u') {
                             $name = $file.FileName
-                            breaK
+                            break
                         }
                         elseif ($file.Extension -eq '.gdi') {
                             $name = $file.FileName
-                            breaK
+                            break
                         }
                         elseif ($file.Extension -eq '.cue') {
                             $name = $file.FileName
-                            breaK
+                            break
                         } 
                     } 
                 }
@@ -387,7 +387,7 @@ function Folderize {
                     $_.Group | & { Process { $_.DestFolder = [System.IO.Path]::Combine($destination, $name) } }
                 }
                 else {
-                    $_.Group | & { Process { $_.DestFolder = [System.IO.Path]::Combine($destination, $_.CleanedName) } }
+                    $_.Group | & { Process { $_.DestFolder = $destination } }
                 }
                 $_.Group
             } } 
