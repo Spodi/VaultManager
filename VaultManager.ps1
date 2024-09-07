@@ -622,7 +622,7 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                         }
                         else {
                             $Values.remove('ESDE')
-                            $Values.remove('all', $true)
+                            $Values.remove('all')
                             UnFolderize @Values
                         }
                         if ($GUI.Nodes.FolderizeMove.IsChecked -and $GUI.Nodes.FolderizeEmptyFolders.IsChecked) {
