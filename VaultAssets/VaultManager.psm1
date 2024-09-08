@@ -230,7 +230,7 @@ function Get-FileSystemEntries {
 function Remove-EmptyFolders {
     <#
     .SYNOPSIS
-    Recursely removes all empty folders in a given path.
+    Recursely removes all empty folders in a given path. Including the path itself, if it results in it being empty.
     #>
     [CmdletBinding()]
     param(
@@ -246,7 +246,7 @@ function Remove-EmptyFolders {
         }
         $currentChildren = Write-Output ([System.IO.Directory]::EnumerateFileSystemEntries($path))
         if ($null -eq $currentChildren) {
-            Write-Host "Removing empty folder at path '${Path}'."
+            Write-Host "Removing empty folder '${Path}'."
             Remove-Item -Force -LiteralPath $Path
         }
     }
