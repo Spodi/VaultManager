@@ -363,12 +363,7 @@ function Folderize {
                 if ($List.BaseName -match '\[(?:[\da-f]){16}]') {
                     $ID = $Matches.0 -replace '\[', '' -replace ']', ''
                     $List.ID = ([int64]::parse($ID, 'HexNumber') -band 0xFFFFFFFFFFFFE000).ToString("X16")
-                    [PSCustomObject]@{
-                        ID   = $ID
-                        List = $List.ID
-                    } | Out-Host
                     if ($ID -eq $List.ID) {
-                        Write-Host 'Main'
                         $List.Main = $true
                     }
                 }
