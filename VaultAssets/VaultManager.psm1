@@ -362,7 +362,7 @@ function Folderize {
             if (($List.Extension -eq '.nsp') -or ($List.Extension -eq '.xci')) {
                 if ($List.BaseName -match '\[(?:[\da-f]){16}]') {
                     $ID = $Matches.0 -replace '\[', '' -replace ']', ''
-                    $List.ID = ([int64]::parse($ID, 'HexNumber') -band 0xFFFFFFFFFFFFE000).ToString("X16")
+                    $List.ID = ([int64]::parse($ID, 'HexNumber') -band 0xFFFFFFFFFFFFE000).ToString('X16')
                     if ($ID -eq $List.ID) {
                         $List.Main = $true
                     }
@@ -398,7 +398,6 @@ function Folderize {
                             break
                         }
                         elseif ((($file.Extension -eq '.nsp') -or ($file.Extension -eq '.xci')) -and $file.Main) {
-                            Write-host 'a'
                             $name = $file.FileName
                             break
                         }
