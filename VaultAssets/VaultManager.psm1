@@ -351,15 +351,37 @@ function Folderize {
                 FileName    = [System.IO.Path]::GetFileName($_)
                 BaseName    = [System.IO.Path]::GetFileNameWithoutExtension($_).TrimEnd()
                 Extension   = [System.IO.Path]::GetExtension($_)
+                ID          = $null
+                Main        = $false
                 CleanedName = $null
                 DestFolder  = $null
             }
             # also remove the Disc tag e.g. "(Disc 1)" at the end, to get all discs in one folder
-            # Join-Path doesn't have -LiteralPath, so use the .Net version instead...
-            $List.CleanedName = ($List.BaseName -replace '\s*\((?:Disc|Track) \d?\d(?: of \d?\d)?\)', '' -replace '\.part\d', '' -replace '\s\s+', '\s').Trim()
-
+            
+            $List.CleanedName = ($List.BaseName -replace '\s*\((?:Disc|Track) \d?\d(?: of \d?\d)?\)', '' -replace '\.part\d', '' -replace '\[(?:(?:(?:[\da-f]){16})|(?:v\d*)|N?(?:(?:KA)|[CT])|DLC|UPD)]', '' -replace '\s\s+', ' ').Trim()
+            if (($List.Extension -eq '.nsp') -or ($List.Extension -eq '.xci')) {
+                if ($List.BaseName -match '\[(?:[\da-f]){16}]') {
+                    $ID = $Matches.0 -replace '\[', '' -replace ']', ''
+                    $List.ID = ([int64]::parse($ID, 'HexNumber') -band 0xFFFFFFFFFFFFE000).ToString("X16")
+                    [PSCustomObject]@{
+                        ID   = $ID
+                        List = $List.ID
+                    } | Out-Host
+                    if ($ID -eq $List.ID) {
+                        Write-Host 'Main'
+                        $List.Main = $true
+                    }
+                }
+            }
             $List
+        } } | Group-Object ID | & { Process { 
+            $ShortestName = ($_.Group | Sort-Object { $_.CleanedName.Length } | Select-Object -First 1).CleanedName
+            $_.Group | & { Process {
+                    $_.CleanedName = $ShortestName
+                    $_
+                } }
         } }
+
 
     if ($ESDE) {
        
@@ -379,10 +401,16 @@ function Folderize {
                         elseif ($file.Extension -eq '.cue') {
                             $name = $file.FileName
                             break
-                        } 
+                        }
+                        elseif ((($file.Extension -eq '.nsp') -or ($file.Extension -eq '.xci')) -and $file.Main) {
+                            Write-host 'a'
+                            $name = $file.FileName
+                            break
+                        }
                     } 
                 }
-
+                
+                # Join-Path doesn't have -LiteralPath, so use the .Net version instead...
                 if ($name) {
                     $_.Group | & { Process { $_.DestFolder = [System.IO.Path]::Combine($destination, $name) } }
                 }
@@ -400,7 +428,7 @@ function Folderize {
     }
 
     if (!$filelist) { return }
-    
+
     $i = 0
     $ProgressParameters = @{
         Activity        = 'Folderize'
@@ -414,7 +442,8 @@ function Folderize {
 
         if (!(Test-Path -LiteralPath $SourceFile.DestFolder -PathType Container)) {
             New-Item $SourceFile.DestFolder -ItemType Directory | Out-Null
-        }    
+        }
+        # Join-Path doesn't have -LiteralPath, so use the .Net version instead...
         $DestFile = [System.IO.Path]::Combine($SourceFile.DestFolder, $SourceFile.FileName)
         $newDest = $SourceFile.DestFolder
         if (Test-Path -LiteralPath $DestFile -PathType Leaf) {
@@ -541,20 +570,17 @@ function UnFolderize {
         # Remove file extension for the new folder name. Will fail on "nameless" files, like .htaccess
         # We don't want to use Get-Item here, as that reads every file with much more metadata than we need.
         $SourceFile = [PSCustomObject]@{
-            Name        = $input
-            FileName    = [System.IO.Path]::GetFileName($input)
-            BaseName    = [System.IO.Path]::GetFileNameWithoutExtension($input).TrimEnd()
-            Extension   = [System.IO.Path]::GetExtension($input)
-            CleanedName = $null
-            DestFolder  = $destination
+            Name       = $input
+            FileName   = [System.IO.Path]::GetFileName($input)
+            BaseName   = [System.IO.Path]::GetFileNameWithoutExtension($input).TrimEnd()
+            Extension  = [System.IO.Path]::GetExtension($input)
+            DestFolder = $destination
         }
-        # also remove the Disc tag e.g. "(Disc 1)" at the end, to get all discs in one folder
-        # Join-Path doesn't have -LiteralPath, so use the .Net version instead...
-        $SourceFile.CleanedName = ($SourceFile.BaseName -replace '\s*\((?:Disc|Track) \d?\d(?: of \d?\d)?\)', '' -replace '\.part\d', '' -replace '\s\s+', '\s').Trim()
 
         if (!(Test-Path -LiteralPath $SourceFile.DestFolder -PathType Container)) {
             New-Item $SourceFile.DestFolder -ItemType Directory | Out-Null
         }
+        # Join-Path doesn't have -LiteralPath, so use the .Net version instead...
         $DestFile = [System.IO.Path]::Combine($SourceFile.DestFolder, $SourceFile.FileName)
         $newDest = $SourceFile.DestFolder
         if (Test-Path -LiteralPath $DestFile -PathType Leaf) {
