@@ -404,8 +404,8 @@ function Folderize {
     $i = 0
     $ProgressParameters = @{
         Activity        = 'Folderize'
-        Status          = "$i / $($FileList.count) Items"
-        PercentComplete = ($i * 100 / $FileList.count)
+        Status          = "$i / $(@($FileList).count) Items"
+        PercentComplete = ($i * 100 / @($FileList).count)
     }
     Write-Progress @ProgressParameters
 
@@ -418,8 +418,8 @@ function Folderize {
         $DestFile = [System.IO.Path]::Combine($SourceFile.DestFolder, $SourceFile.FileName)
         $newDest = $SourceFile.DestFolder
         if (Test-Path -LiteralPath $DestFile -PathType Leaf) {
-            for ($i = 2; ; $i++) {
-                $newDest = ([System.IO.Path]::Combine($SourceFile.DestFolder, ($SourceFile.BaseName + " ($i)" + $SourceFile.Extension)))
+            for ($j = 2; ; $j++) {
+                $newDest = ([System.IO.Path]::Combine($SourceFile.DestFolder, ($SourceFile.BaseName + " ($j)" + $SourceFile.Extension)))
                 if (!(Test-Path -LiteralPath $newDest -PathType Leaf)) {
                     Write-Warning "`"$DestFile`" already exists in the destination. File will be renamed."
                     break
@@ -437,8 +437,8 @@ function Folderize {
         $i++
         $ProgressParameters = @{
             Activity        = 'Folderize'
-            Status          = "$i / $($FileList.count) Items"
-            PercentComplete = ($i * 100 / $FileList.count)
+            Status          = "$i / $(@($FileList).count) Items"
+            PercentComplete = ($i * 100 / @($FileList).count)
         }
         Write-Progress @ProgressParameters
     }
@@ -532,8 +532,8 @@ function UnFolderize {
     $i = 0
     $ProgressParameters = @{
         Activity        = 'Unfolderize'
-        Status          = "$i / $($FileList.count) Items"
-        PercentComplete = ($i * 100 / $FileList.count)
+        Status          = "$i / $(@($FileList).count) Items"
+        PercentComplete = ($i * 100 / @($FileList).count)
     }
     Write-Progress @ProgressParameters
 
@@ -558,8 +558,8 @@ function UnFolderize {
         $DestFile = [System.IO.Path]::Combine($SourceFile.DestFolder, $SourceFile.FileName)
         $newDest = $SourceFile.DestFolder
         if (Test-Path -LiteralPath $DestFile -PathType Leaf) {
-            for ($i = 2; ; $i++) {
-                $newDest = ([System.IO.Path]::Combine($SourceFile.DestFolder, ($SourceFile.BaseName + " ($i)" + $SourceFile.Extension)))
+            for ($j = 2; ; $j++) {
+                $newDest = ([System.IO.Path]::Combine($SourceFile.DestFolder, ($SourceFile.BaseName + " ($j)" + $SourceFile.Extension)))
                 if (!(Test-Path -LiteralPath $newDest -PathType Leaf)) {
                     Write-Warning "`"$DestFile`" already exists in the destination. File will be renamed."
                     break
@@ -577,8 +577,8 @@ function UnFolderize {
         $i++
         $ProgressParameters = @{
             Activity        = 'Unfolderize'
-            Status          = "$i / $($FileList.count) Items"
-            PercentComplete = ($i * 100 / $FileList.count)
+            Status          = "$i / $(@($FileList).count) Items"
+            PercentComplete = ($i * 100 / @($FileList).count)
         }
         Write-Progress @ProgressParameters
     }
