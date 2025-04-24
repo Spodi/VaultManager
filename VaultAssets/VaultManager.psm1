@@ -27,16 +27,21 @@ function Get-7zip {
 }
 
 function Compress-7z {
-    [CmdletBinding(PositionalBinding = $false)]
+    [CmdletBinding(PositionalBinding = $false, DefaultParameterSetName = 'simple')]
     param (
-        [Parameter(Mandatory, ParameterSetName = 'simple', Position = 0)][Parameter(Mandatory, ParameterSetName = 'advanced', Position = 0)]   [string] $DestinationPath,
-        [Parameter(Mandatory, ValueFromPipeline, ParameterSetName = 'simple', Position = 1)][Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'advanced', Position = 1)]   [string[]] $path,
-        [Parameter(ValueFromPipelineByPropertyName, ParameterSetName = 'advanced')][AllowEmptyString()]   [string] $type,
-        [Parameter(ParameterSetName = 'simple')][Parameter(ParameterSetName = 'advanced')]   [string] $root,
-        [Parameter(ParameterSetName = 'simple')][Parameter(ParameterSetName = 'advanced')]   [switch] $nonSolid
+        [Parameter(Mandatory, ParameterSetName = 'simple', Position = 0)][Parameter(Mandatory, ParameterSetName = 'advanced', Position = 0)] [Alias('ArchivePath')]   [string] $DestinationPath,
+        [Parameter(Mandatory, ValueFromPipeline, ParameterSetName = 'simple', Position = 1)][Parameter(Mandatory, ValueFromPipelineByPropertyName, ParameterSetName = 'advanced', Position = 1)]   [string[]] $Path,
+        [Parameter(ValueFromPipelineByPropertyName, ParameterSetName = 'advanced')][AllowEmptyString()]   [string] $Type,
+        [Parameter(ParameterSetName = 'simple')][Parameter(ParameterSetName = 'advanced')]   [string] $Root,
+        [Parameter(ParameterSetName = 'simple')][Parameter(ParameterSetName = 'advanced')]   [switch] $NonSolid,
+        [Parameter(ParameterSetName = 'simple')][Parameter(ParameterSetName = 'advanced')]   [string] $ProgressAction
     ) 
 
     begin {
+        if ($ProgressAction) {
+            $prevProgress = $ProgressPreference
+            $ProgressPreference = $ProgressAction 
+        }
         if (![System.IO.Path]::IsPathRooted($DestinationPath)) {
             $DestinationPath = Join-Path (Get-Location) $DestinationPath
         }
@@ -77,12 +82,13 @@ function Compress-7z {
         foreach ($fileType in $List) {
             switch ($filetype.name) {
                 'CD-Audio' { $options = '-mf=Delta:4 -m0=LZMA:x9:mt2:d1g:lc1:lp2'; break } 
-                'Text' { $options = '-m0=PPmD:x9:o16'; break }
+                'Text' { $options = '-m0=PPmD:x9:o32:mem1g'; break }
                 'Binary' { $options = '-m0=LZMA:mt2:x9:d1g'; break }
+                'Fast' { $options = '-m0=LZMA:mt2:x3'; break }
                 Default { $options = '-m0=LZMA:mt2:x9:d1g'; break }  
             }
             $files = "`"$($fileType.Group.path -join '" "')`""
-            $Process = Start-Process -PassThru -Wait -WorkingDirectory $root -FilePath $7zip -ArgumentList @('a', '-r0', '-mqs', "-ms=$solid", $options, "`"$DestinationPath`"", $files)
+            $Process = Start-Process -PassThru -Wait -WorkingDirectory $root -FilePath $7zip -ArgumentList @('u', '-r0', '-mqs', "-ms=$solid", $options, "`"$DestinationPath`"", $files)
             
             if ($Process.ExitCode -ne 0) {
                 Write-Progress @ProgressParameters -Completed
@@ -99,73 +105,60 @@ function Compress-7z {
             Write-Progress @ProgressParameters
         }
         Write-Progress @ProgressParameters -Completed
+        if ($prevProgress) {
+            $prevProgress = $ProgressPreference
+        }
     }
-
 }
 #endregion
 
 #region file/folder list
-function Get-Files {
+function Get-FileSystemEntries {
     <#
     .SYNOPSIS
-    Basically "Get-ChildItem -File -recurse", but slightly faster. Gets paths only.
-    .LINK
-    Get-Folders
-    .LINK
-    Get-FileSystemEntries
+    Basically "Get-ChildItem", but slightly faster. Gets paths only.
     #>
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory, ValueFromPipeline)]   [string] $path
+        [Parameter(Mandatory, ValueFromPipeline)] [string] $Path,
+        [Parameter()] [switch] $File,
+        [Parameter()] [switch] $Directory,
+        [Parameter()] [switch] $Recurse
     )
     begin {
         $prevDir = [System.IO.Directory]::GetCurrentDirectory()
         [System.IO.Directory]::SetCurrentDirectory((Get-Location))
+        $Queue = [System.Collections.Queue]@()
     }
     process {
-        Write-Output ([System.IO.Directory]::EnumerateFiles($path))
-        [System.IO.Directory]::EnumerateDirectories($path) | & { process {
-                if ($_) {
-                    Get-Files $_
-                }
-            } } 
-    }
-    end {
-        [System.IO.Directory]::SetCurrentDirectory($prevDir)
-    }
-}
-function Get-Folders {
-    <#
-    .SYNOPSIS
-    Basically "Get-ChildItem -Directory -recurse", but slightly faster. Gets paths only.
-    .LINK
-    Get-Files
-    .LINK
-    Get-FileSystemEntries
-    #>
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline)]  [string] $path,
-        [Parameter()]  [string] $recurse
-    )
-    begin {
-        $prevDir = [System.IO.Directory]::GetCurrentDirectory()
-        [System.IO.Directory]::SetCurrentDirectory((Get-Location))
-    }
-    process {
-        [System.IO.Directory]::EnumerateDirectories($path) | & { process {
-                if ($_) {
-                    Write-Output $_
-                    if ($recurse) {
-                        Get-Folders $_
+        $Queue.Enqueue($Path)
+        while ($Queue.count -gt 0) {
+            try {
+                $Current = $Queue.Dequeue()
+                [System.IO.Directory]::EnumerateDirectories($Current) | & { process {
+                        if (!$File) { Write-Output ($_ + [System.IO.Path]::DirectorySeparatorChar ) }
+                        if ($Recurse) { $Queue.Enqueue($_) }
+                    } }
+                if (!$Directory) { Write-Output ([System.IO.Directory]::EnumerateFiles($Current)) }
+            }
+            catch [System.Management.Automation.RuntimeException] {
+                $catchedError = $_
+                switch ($catchedError.Exception.InnerException.GetType().FullName) {
+                    'System.UnauthorizedAccessException' { Write-Warning $catchedError.Exception.InnerException.Message }
+                    'System.Security.SecurityException' { Write-Warning $catchedError.Exception.InnerException.Message }
+                    default {
+                        Throw $catchedError
                     }
-                }
-            } }
+                }  
+            }
+        
+        }
     }
     end {
         [System.IO.Directory]::SetCurrentDirectory($prevDir)
     }
 }
+
 function Get-FolderSubs {
     <#
     .SYNOPSIS
@@ -177,56 +170,35 @@ function Get-FolderSubs {
     #>
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory, ValueFromPipeline)]  [string] $path
+        [Parameter(Mandatory, ValueFromPipeline)]  [string] $Path
     )
-    begin {
-        $prevDir = [System.IO.Directory]::GetCurrentDirectory()
-        [System.IO.Directory]::SetCurrentDirectory((Get-Location))
-    }
     process {
-        [System.IO.Directory]::EnumerateDirectories($path) | & { process {
-                if ($_) {
-                    Write-Output ([System.IO.Directory]::EnumerateDirectories($_))
-                }
+        Get-FileSystemEntries -Directory $Path | & { process {
+                Write-Host $_
+                Write-Output (Get-FileSystemEntries -Directory $_)
             } }
-    }
-    end {
-        [System.IO.Directory]::SetCurrentDirectory($prevDir)
-    }
-}
-function Get-FileSystemEntries {
-    <#
-    .SYNOPSIS
-    Basically "Get-ChildItem -recurse", but slightly faster. Gets paths only.
-    .LINK
-    Get-Files
-    .LINK
-    Get-Folders
-    #>
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline)] [string] $path
-    )
-    begin {
-        $prevDir = [System.IO.Directory]::GetCurrentDirectory()
-        [System.IO.Directory]::SetCurrentDirectory((Get-Location))
-    }
-    process {
-        Write-Output ([System.IO.Directory]::EnumerateFiles($Path)) 
-        [System.IO.Directory]::EnumerateDirectories($Path) | & { process {
-                if ($_) {
-                    Write-Output $_
-                    Get-FileSystemEntries $_
-                }
-            } }
-    }
-    end {
-        [System.IO.Directory]::SetCurrentDirectory($prevDir)
     }
 }
 #endregion file/folder list
 
 #region File managing
+function Remove-EmptyFoldersSubroutine {
+    <#
+    .SYNOPSIS
+    Recursely removes all empty folders in a given path.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string] $Path
+    )
+    Get-FileSystemEntries $Path -Directory | & { Process {
+            Remove-EmptyFoldersSubroutine -Path $_
+        } }   
+    if ($null -eq (Get-FileSystemEntries $Path | Select-Object -First 1)) {
+        Write-Host "Removing empty folder at path `"$Path`"."
+        Remove-Item -Force -LiteralPath $Path
+    }
+}
 function Remove-EmptyFolders {
     <#
     .SYNOPSIS
@@ -236,22 +208,10 @@ function Remove-EmptyFolders {
     param(
         [Parameter(Mandatory, ValueFromPipeline)] [string] $Path
     )
-    begin {
-        $prevDir = [System.IO.Directory]::GetCurrentDirectory()
-        [System.IO.Directory]::SetCurrentDirectory((Get-Location))
-    }
     Process {
-        foreach ($childDirectory in [System.IO.Directory]::EnumerateDirectories($path)) {
-            Remove-EmptyFolders -Path $childDirectory
-        }
-        $currentChildren = Write-Output ([System.IO.Directory]::EnumerateFileSystemEntries($path))
-        if ($null -eq $currentChildren) {
-            Write-Host "Removing empty folder '${Path}'."
-            Remove-Item -Force -LiteralPath $Path
-        }
-    }
-    end {
-        [System.IO.Directory]::SetCurrentDirectory($prevDir)
+        Get-FileSystemEntries $Path -Directory | & { Process {
+                Remove-EmptyFoldersSubroutine -Path $_
+            } }
     }
 }
 function Folderize {
@@ -289,7 +249,7 @@ function Folderize {
     )
 
     Write-Host -NoNewline 'Retrieving file list, this can take a while... '
-    $SourceFiles = Get-Files $source
+    $SourceFiles = Get-FileSystemEntries -File -Recurse $source
     Write-Host 'Done'
 
     if ($all) {
@@ -501,7 +461,7 @@ function UnFolderize {
     )
 
     Write-Host -NoNewline 'Retrieving file list, this can take a while... '
-    $SourceFiles = Get-Files $source
+    $SourceFiles = Get-FileSystemEntries -File -Recurse $source
     Write-Host 'Done'
 
     if ($all) {

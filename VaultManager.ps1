@@ -142,10 +142,7 @@ function New-XMLNamespaceManager {
 
     return , $NsMgr # unary comma wraps $NsMgr so it isn't unrolled
 }
-
-
 #endregion GUI functions
-
 #region WPF init
 $myType = (Add-Type -LiteralPath (Join-Path $PSScriptRootEsc '.\VaultAssets\VaultManager.cs') -ReferencedAssemblies (@('PresentationFramework', 'System.Windows.Forms')) -PassThru).Assembly | Sort-Object -Unique
 
@@ -176,7 +173,7 @@ $GUI.Nodes = $XAML.SelectNodes('//*[@x:Name]', $GUI.NsMgr) | ForEach-Object {
 }
 #endregion WPF init	
 
-#region VaultApp Functions
+#region VaultApp GUI func
 function New-WPFTab {
     [CmdletBinding()]
     param (
@@ -306,6 +303,7 @@ function New-WPFCard {
     }
 }
 
+#region VaultApp func
 function Get-VaultTabData {
     [CmdletBinding()]
     param(
@@ -318,7 +316,7 @@ function Get-VaultTabData {
             return
         }
         if (!$TabName) {
-            $AddOns = Get-Folders $Directory
+            $AddOns = Get-FileSystemEntries -Directory $Directory
         }
         else {
             $AddOns = $Directory
@@ -383,7 +381,7 @@ function Get-VaultAppData {
             return
         }
         if ($TabName) {
-            $tools = Get-Folders $Folder
+            $tools = Get-FileSystemEntries -Directory $Folder
         }
         else {
             if ($Folder) {
@@ -395,13 +393,12 @@ function Get-VaultAppData {
             Write-Warning "Empty folder or wrong structure: `"$Folder`"."
             return
         }
-
         $tools | & { Process {
                 $categoryPath = [System.IO.Path]::GetDirectoryName($_)
                 $categoryFolder = Split-Path($categoryPath) -Leaf
                 #$readmepath = [System.IO.Path]::Combine($_, 'Readme.txt')
                 $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
-                $hasFiles = [System.IO.Directory]::EnumerateFileSystemEntries($_) | & { Process { if ($_ -NotMatch 'VaultManifest\.json$') { $_ } } } | Select-Object -First 1
+                $hasFiles = Get-FileSystemEntries $_ | & { Process { if ($_ -NotMatch 'VaultManifest\.json$') { $_ } } } | Select-Object -First 1
                 if ($hasFiles.count -lt 1) {
                     Write-Warning "No objects in $_"
                     return
@@ -447,6 +444,19 @@ function Get-VaultAppData {
             } }
     }
 }
+function Write-VaultManifest {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string] $Path,
+        [Parameter(Mandatory, ValueFromPipeline)] [VaultManifest] $ManifestData
+    )
+    Process {
+        
+    }
+}
+#endregion VaultApp func
+
+
 
 function Add-VaultAppTab {
     [CmdletBinding()]
@@ -493,7 +503,7 @@ function Add-VaultAppTab {
         }      
     }
 }
-#endregion VaultApp Functions
+#endregion VaultApp GUI func
 
 #region Code behind
 $defaultinput = Join-Path (Get-Location) 'input'
@@ -626,9 +636,7 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                             UnFolderize @Values
                         }
                         if ($GUI.Nodes.FolderizeMove.IsChecked -and $GUI.Nodes.FolderizeEmptyFolders.IsChecked) {
-                            Foreach ($folder in Get-ChildItem -Directory -LiteralPath $GUI.Nodes.FolderizeInput.Text) {
-                                Join-Path $GUI.Nodes.FolderizeInput.Text $Folder | Remove-EmptyFolders 
-                            }
+                            Remove-EmptyFolders $GUI.Nodes.FolderizeInput.Text
                         }
                         continue
                     }
@@ -647,7 +655,7 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                         continue
                     }
                     '^ButtonCueGenStart$' {
-                        $files = Get-Files ($GUI.Nodes.CueGen.Text) | Where-Object { [System.IO.Path]::GetExtension($_) -eq '.bin' -or [System.IO.Path]::GetExtension($_) -eq '.raw' }
+                        $files = Get-FileSystemEntries -File ($GUI.Nodes.CueGen.Text) | Where-Object { [System.IO.Path]::GetExtension($_) -eq '.bin' -or [System.IO.Path]::GetExtension($_) -eq '.raw' }
                         if ($files) {
                             $cuecontent = New-CueFromFiles $files | ConvertTo-Cue
                             if ($cuecontent) {
