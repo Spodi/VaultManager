@@ -143,6 +143,158 @@ function New-XMLNamespaceManager {
     return , $NsMgr # unary comma wraps $NsMgr so it isn't unrolled
 }
 #endregion GUI functions
+#region VaultApp func
+function Get-VaultTabData {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, ValueFromPipeline)] [string] $Directory,
+        [Parameter()] [string] $TabName
+    )
+    Process {
+        if (!(Test-Path -LiteralPath $Directory -PathType Container)) {
+            Write-Warning "Non-existent folder: `"$Directory`"."
+            return
+        }
+        if (!$TabName) {
+            $AddOns = Get-FileSystemEntries -Directory $Directory
+        }
+        else {
+            $AddOns = $Directory
+        }
+        if (!$AddOns) {
+            Write-Warning "Empty folder or wrong structure: `"$Directory`"."
+            return
+        }
+        $AddOns | & { Process {
+                $Data = [VaultTabManifest]@{
+                    Folder = $_
+                    Name   = Split-Path $_ -Leaf
+                }
+
+                $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
+
+                if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
+                    $manifest = Get-Content -Raw -LiteralPath $manifestpath | ConvertFrom-Json
+                }
+                if ($manifest) {
+                    if ($manifest.Name) {
+                        $Data.Name = $manifest.Name
+                    }
+                    if ($manifest.Sortindex) {
+                        $Data.Sortindex = $manifest.Sortindex
+                    }
+                    if ($manifest.Color) {
+                        $Data.Color = $manifest.Color
+                    }
+                    if ($manifest.CategorySort) {
+                        $Data.CategorySort = $manifest.CategorySort
+                    }
+                    if ($manifest.Buttons) {
+                        for ($i = 0; $i -lt 3; $i++) {
+                            If ($manifest.Buttons[$i]) {
+                                if ($manifest.Buttons[$i].Name) {
+                                    $Data.Buttons[$i].Name = $manifest.Buttons[$i].Name
+                                }
+                                if ($manifest.Buttons[$i].Path) {
+                                    $Data.Buttons[$i].Path = $manifest.Buttons[$i].Path
+                                }
+                            }
+                        }
+                    }
+                }
+                Write-Output $Data
+            } }
+    } 
+}
+
+function Get-VaultAppData {
+    [CmdletBinding()]
+    param(
+        [Parameter()] [string] $TabName,
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)] [string] $Folder,
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)] [ManifestButton[]] $Buttons,
+        [Parameter(ValueFromPipelineByPropertyName)] [VaultCategorySort[]] $CategorySort
+    )
+    Process {
+        if (!(Test-Path $Folder -PathType Container)) {
+            Write-Warning "Non-existent folder: `"$Folder`""
+            return
+        }
+        if ($TabName) {
+            $tools = Get-FileSystemEntries -Directory $Folder
+        }
+        else {
+            if ($Folder) {
+                $tools = Get-FolderSubs $Folder
+            }
+        }
+
+        if (!$tools) {
+            Write-Warning "Empty folder or wrong structure: `"$Folder`"."
+            return
+        }
+        $tools | & { Process {
+                $categoryPath = [System.IO.Path]::GetDirectoryName($_)
+                $categoryFolder = Split-Path($categoryPath) -Leaf
+                #$readmepath = [System.IO.Path]::Combine($_, 'Readme.txt')
+                $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
+                $hasFiles = Get-FileSystemEntries $_ | & { Process { if ($_ -NotMatch 'VaultManifest\.json$') { $_ } } } | Select-Object -First 1
+                if ($hasFiles.count -lt 1) {
+                    Write-Warning "No objects in $_"
+                    return
+                }
+                $Data = [VaultCardManifest]@{
+                    Name     = Split-Path $_ -Leaf 
+                    Category = $categoryFolder
+                    Buttons  = [ManifestButton[]]($Buttons | ConvertTo-Json -Depth 1 | ConvertFrom-Json) # Simplest way to make a deep copy instead of a reference
+                }
+                $CurrentFolder = $_
+                $Data.Buttons.ForEach( { $_.Path = Join-Path $CurrentFolder ($_.Path -replace '^\./|^\.\\', '') })
+                Clear-Variable CurrentFolder
+    
+                $manifest = $null
+                if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
+                    $manifest = Get-Content -Raw -LiteralPath $manifestpath | ConvertFrom-Json
+                }
+                if ($manifest) {
+                    if ($manifest.Name) {
+                        $Data.Name = $manifest.Name
+                    }
+                    if ($manifest.Sortindex) {
+                        $Data.Sortindex = $manifest.Sortindex
+                    }
+                    if ($manifest.Category) {
+                        $Data.Category = $manifest.Category
+                    }
+                    if ($manifest.Buttons) {
+                        for ($i = 0; $i -lt 3; $i++) {
+                            If ($manifest.Buttons[$i]) {
+                                if ($manifest.Buttons[$i].Name) {
+                                    $Data.Buttons[$i].Name = $manifest.Buttons[$i].Name
+                                }
+                                if ($manifest.Buttons[$i].Path) {
+                                    $Data.Buttons[$i].Path = Join-Path $_ ($manifest.Buttons[$i].Path -replace '^\./|^\.\\', '')
+                                }
+                            }
+                        }
+                    }
+                }
+                $Data.CategoryIndex = ($CategorySort | Where-Object 'Name' -EQ $Data.Category | Select-Object -First 1).SortIndex
+                Write-Output $Data
+            } }
+    }
+}
+function Write-VaultManifest {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string] $Path,
+        [Parameter(Mandatory, ValueFromPipeline)] [VaultManifest] $ManifestData
+    )
+    Process {
+        
+    }
+}
+#endregion VaultApp func
 #region WPF init
 $myType = (Add-Type -LiteralPath (Join-Path $PSScriptRootEsc '.\VaultAssets\VaultManager.cs') -ReferencedAssemblies (@('PresentationFramework', 'System.Windows.Forms')) -PassThru).Assembly | Sort-Object -Unique
 
@@ -302,161 +454,6 @@ function New-WPFCard {
         Write-Output $AppOuterBorder               
     }
 }
-
-#region VaultApp func
-function Get-VaultTabData {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory, ValueFromPipeline)] [string] $Directory,
-        [Parameter()] [string] $TabName
-    )
-    Process {
-        if (!(Test-Path -LiteralPath $Directory -PathType Container)) {
-            Write-Warning "Non-existent folder: `"$Directory`"."
-            return
-        }
-        if (!$TabName) {
-            $AddOns = Get-FileSystemEntries -Directory $Directory
-        }
-        else {
-            $AddOns = $Directory
-        }
-        if (!$AddOns) {
-            Write-Warning "Empty folder or wrong structure: `"$Directory`"."
-            return
-        }
-        $AddOns | & { Process {
-                $Data = [VaultTabManifest]@{
-                    Folder = $_
-                    Name   = Split-Path $_ -Leaf
-                }
-
-                $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
-
-                if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
-                    $manifest = Get-Content -Raw -LiteralPath $manifestpath | ConvertFrom-Json
-                }
-                if ($manifest) {
-                    if ($manifest.Name) {
-                        $Data.Name = $manifest.Name
-                    }
-                    if ($manifest.Sortindex) {
-                        $Data.Sortindex = $manifest.Sortindex
-                    }
-                    if ($manifest.Color) {
-                        $Data.Color = $manifest.Color
-                    }
-                    if ($manifest.CategorySort) {
-                        $Data.CategorySort = $manifest.CategorySort
-                    }
-                    if ($manifest.Buttons) {
-                        for ($i = 0; $i -lt 3; $i++) {
-                            If ($manifest.Buttons[$i]) {
-                                if ($manifest.Buttons[$i].Name) {
-                                    $Data.Buttons[$i].Name = $manifest.Buttons[$i].Name
-                                }
-                                if ($manifest.Buttons[$i].Path) {
-                                    $Data.Buttons[$i].Path = $manifest.Buttons[$i].Path
-                                }
-                            }
-                        }
-                    }
-                }
-                Write-Output $Data
-            } }
-    } 
-}
-
-function Get-VaultAppData {
-    [CmdletBinding()]
-    param(
-        [Parameter()] [string] $TabName,
-        [Parameter(Mandatory, ValueFromPipelineByPropertyName)] [string] $Folder,
-        [Parameter(Mandatory, ValueFromPipelineByPropertyName)] [ManifestButton[]] $Buttons,
-        [Parameter(ValueFromPipelineByPropertyName)] [VaultCategorySort[]] $CategorySort
-    )
-    Process {
-        if (!(Test-Path $Folder -PathType Container)) {
-            Write-Warning "Non-existent folder: `"$Folder`""
-            return
-        }
-        if ($TabName) {
-            $tools = Get-FileSystemEntries -Directory $Folder
-        }
-        else {
-            if ($Folder) {
-                $tools = Get-FolderSubs $Folder
-            }
-        }
-
-        if (!$tools) {
-            Write-Warning "Empty folder or wrong structure: `"$Folder`"."
-            return
-        }
-        $tools | & { Process {
-                $categoryPath = [System.IO.Path]::GetDirectoryName($_)
-                $categoryFolder = Split-Path($categoryPath) -Leaf
-                #$readmepath = [System.IO.Path]::Combine($_, 'Readme.txt')
-                $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
-                $hasFiles = Get-FileSystemEntries $_ | & { Process { if ($_ -NotMatch 'VaultManifest\.json$') { $_ } } } | Select-Object -First 1
-                if ($hasFiles.count -lt 1) {
-                    Write-Warning "No objects in $_"
-                    return
-                }
-                $Data = [VaultCardManifest]@{
-                    Name     = Split-Path $_ -Leaf 
-                    Category = $categoryFolder
-                    Buttons  = [ManifestButton[]]($Buttons | ConvertTo-Json -Depth 1 | ConvertFrom-Json) # Simplest way to make a deep copy instead of a reference
-                }
-                $CurrentFolder = $_
-                $Data.Buttons.ForEach( { $_.Path = Join-Path $CurrentFolder ($_.Path -replace '^\./|^\.\\', '') })
-                Clear-Variable CurrentFolder
-    
-                $manifest = $null
-                if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
-                    $manifest = Get-Content -Raw -LiteralPath $manifestpath | ConvertFrom-Json
-                }
-                if ($manifest) {
-                    if ($manifest.Name) {
-                        $Data.Name = $manifest.Name
-                    }
-                    if ($manifest.Sortindex) {
-                        $Data.Sortindex = $manifest.Sortindex
-                    }
-                    if ($manifest.Category) {
-                        $Data.Category = $manifest.Category
-                    }
-                    if ($manifest.Buttons) {
-                        for ($i = 0; $i -lt 3; $i++) {
-                            If ($manifest.Buttons[$i]) {
-                                if ($manifest.Buttons[$i].Name) {
-                                    $Data.Buttons[$i].Name = $manifest.Buttons[$i].Name
-                                }
-                                if ($manifest.Buttons[$i].Path) {
-                                    $Data.Buttons[$i].Path = Join-Path $_ ($manifest.Buttons[$i].Path -replace '^\./|^\.\\', '')
-                                }
-                            }
-                        }
-                    }
-                }
-                $Data.CategoryIndex = ($CategorySort | Where-Object 'Name' -EQ $Data.Category | Select-Object -First 1).SortIndex
-                Write-Output $Data
-            } }
-    }
-}
-function Write-VaultManifest {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)] [string] $Path,
-        [Parameter(Mandatory, ValueFromPipeline)] [VaultManifest] $ManifestData
-    )
-    Process {
-        
-    }
-}
-#endregion VaultApp func
-
-
 
 function Add-VaultAppTab {
     [CmdletBinding()]
