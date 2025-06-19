@@ -23,6 +23,13 @@
                     </Style>
                 </Style.Resources>
             </Style>
+            <Style x:Key="TabCorners">
+                <Style.Resources>
+                    <Style TargetType="{x:Type Border}">
+                        <Setter Property="CornerRadius" Value="0,0,0,0" />
+                    </Style>
+                </Style.Resources>
+            </Style>
             <Style x:Key="BorderCorners" TargetType="{x:Type Border}">
                 <Setter Property="CornerRadius" Value="0" />
             </Style>
@@ -57,6 +64,56 @@
                 <Setter Property="Width" Value="50" />
             </Style>
 
+            <Style TargetType="{x:Type TabItem}" BasedOn="{StaticResource TabCorners}">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TabItem">
+                            <Border Name="Border" BorderThickness="1,1,1,0">
+                                <ContentPresenter x:Name="ContentSite"
+                                        VerticalAlignment="Center"
+                                        HorizontalAlignment="Center"
+                                        ContentSource="Header"
+                                        Margin="10,2"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsSelected" Value="False"/>
+                                        <Condition Property="IsMouseOver" Value="True"/>
+                                    </MultiTrigger.Conditions>
+                                    <Setter TargetName="Border" Property="Margin" Value="-2,-1,1,0" />
+                                    <Setter TargetName="Border" Property="Background" Value="{DynamicResource TabItemBackground2}" />
+                                </MultiTrigger>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsSelected" Value="False"/>
+                                        <Condition Property="IsMouseOver" Value="False"/>
+                                    </MultiTrigger.Conditions>
+                                    <Setter TargetName="Border" Property="Margin" Value="-2,0,1,0" />
+                                    <Setter TargetName="Border" Property="Background" Value="{DynamicResource TabItemBackground1}" />
+                                </MultiTrigger>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsSelected" Value="True"/>
+                                        <Condition Property="IsMouseOver" Value="True"/>
+                                    </MultiTrigger.Conditions>
+                                    <Setter TargetName="Border" Property="Margin" Value="-2,-2,1,0" />
+                                    <Setter TargetName="Border" Property="Background" Value="{DynamicResource TabItemBackground3}" />
+                                </MultiTrigger>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsSelected" Value="True"/>
+                                        <Condition Property="IsMouseOver" Value="False"/>
+                                    </MultiTrigger.Conditions>
+                                    <Setter TargetName="Border" Property="Margin" Value="-2,-2,1,0 " />
+                                    <Setter TargetName="Border" Property="Background" Value="{DynamicResource TabItemBackground3}" />
+                                </MultiTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
 
             <!-- Edit colors here -->
             <Style TargetType="{x:Type RadioButton}">
@@ -81,10 +138,18 @@
                 <GradientStop Color="#FF454545" />
                 <GradientStop Color="#FF141414" Offset="1" />
             </LinearGradientBrush>
-            <Style TargetType="{x:Type TabItem}" BasedOn="{StaticResource Corners}">
-                <Setter Property="Foreground" Value="Orange" />
-                <Setter Property="Background" Value="{DynamicResource TabItemBackground1}" />
-            </Style>
+            <LinearGradientBrush x:Key="TabItemBackground2" EndPoint="0,1">
+                <GradientStop Color="#FF646464" />
+                <GradientStop Color="#FF343434" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="TabItemBackground3" EndPoint="0,1">
+                <GradientStop Color="#FF848484" />
+                <GradientStop Color="#FF545454" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="TabItemBackground4" EndPoint="0,1">
+                <GradientStop Color="#FFA3A3A3" />
+                <GradientStop Color="#FF747474" Offset="1" />
+            </LinearGradientBrush>
             <LinearGradientBrush x:Key="HeaderLabelBackground" EndPoint="0.5,1" StartPoint="0.5,0">
                 <GradientStop Color="#00000000" />
                 <GradientStop Color="#00000000" Offset="1" />
@@ -96,15 +161,19 @@
             </Style>
             <Style x:Key="UtilitiesCategoryLabel" TargetType="{x:Type Label}" BasedOn="{StaticResource CategoryLabel}">
                 <Setter Property="Foreground" Value="#43b047" />
+            </Style>
+            <Style x:Key="UtilitiesCategoryLabelPanel" TargetType="{x:Type StackPanel}">
                 <Setter Property="Background" Value="Black" />
             </Style>
             <Style x:Key="UtilitiesCardOuterBorder" TargetType="{x:Type Border}" BasedOn="{StaticResource CardOuterBorder}">
                 <Setter Property="Background" Value="#049CD8" />
                 <Setter Property="BorderBrush" Value="Black" />
             </Style>
+            <Style x:Key="UtilitiesAppLabelPanel" TargetType="{x:Type StackPanel}">
+                <Setter Property="Background" Value="Black" />
+            </Style>
             <Style x:Key="UtilitiesAppLabel" TargetType="{x:Type Label}">
                 <Setter Property="Foreground" Value="#FBD000" />
-                <Setter Property="Background" Value="Black" />
             </Style>
             <!-- Try not to edit stuff below -->
 
@@ -117,7 +186,7 @@
             <ImageBrush Stretch="UniformToFill" ImageSource="/bg.png" Opacity="0.65" />
         </Grid.Background>
         <TabControl x:Name="Tabs" Background="#CC141414">
-            <TabItem Header="Integrated Tools" Margin="-2,-2,-2,0" Foreground="DarkGray" Background="{DynamicResource TabItemBackground1}">
+            <TabItem Header="Integrated Tools" Foreground="DarkGray">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
 

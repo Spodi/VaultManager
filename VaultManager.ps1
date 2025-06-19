@@ -35,20 +35,6 @@ Write-Host
 class ManifestButton {
     [string] $Name
     [string] $Path
-
-    ManifestButton([hashtable]$Properties) {
-        foreach ($Property in $Properties.Keys) {
-            $this.$Property = $Properties.$Property
-        }
-    }
-    ManifestButton([PSCustomObject]$Properties) {
-        foreach ($Property in ($Properties | Get-Member -MemberType 'Property').Name) {
-            $this.$Property = $Properties.$Property
-        }
-        foreach ($Property in ($Properties | Get-Member -MemberType 'NoteProperty').Name) {
-            $this.$Property = $Properties.$Property
-        }
-    }
 }
 class VaultManifest {
     [string] $Name
@@ -78,6 +64,8 @@ class VaultTabManifest : VaultManifest {
 class VaultCardManifest : VaultManifest {
     [string] $Category
     [int16]  $CategoryIndex = 0
+    [string] $CategoryIcon
+    [string] $Icon
 }
 
 class WPFTab {
@@ -135,10 +123,10 @@ function New-XMLNamespaceManager {
     }
 
     $XmlDocument.DocumentElement.Attributes | 
-        Where-Object { $_.Prefix -eq 'xmlns' } |
-        ForEach-Object {
-            $NsMgr.AddNamespace($_.LocalName, $_.Value)
-        }
+    Where-Object { $_.Prefix -eq 'xmlns' } |
+    ForEach-Object {
+        $NsMgr.AddNamespace($_.LocalName, $_.Value)
+    }
 
     return , $NsMgr # unary comma wraps $NsMgr so it isn't unrolled
 }
@@ -176,30 +164,25 @@ function Get-VaultTabData {
                 if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
                     $manifest = Get-Content -Raw -LiteralPath $manifestpath | ConvertFrom-Json
                 }
-                if ($manifest) {
-                    if ($manifest.Name) {
-                        $Data.Name = $manifest.Name
+                foreach ($Property in ($Data.PSObject.Properties)) {
+                    if ($Property.Name -ne 'Buttons') {
+                        if ($manifest.($Property.Name)) {
+                            $Data.($Property.Name) = $manifest.($Property.Name)
+                        }
                     }
-                    if ($manifest.Sortindex) {
-                        $Data.Sortindex = $manifest.Sortindex
-                    }
-                    if ($manifest.Color) {
-                        $Data.Color = $manifest.Color
-                    }
-                    if ($manifest.CategorySort) {
-                        $Data.CategorySort = $manifest.CategorySort
-                    }
-                    if ($manifest.Buttons) {
-                        for ($i = 0; $i -lt 3; $i++) {
-                            If ($manifest.Buttons[$i]) {
-                                if ($manifest.Buttons[$i].Name) {
-                                    $Data.Buttons[$i].Name = $manifest.Buttons[$i].Name
-                                }
-                                if ($manifest.Buttons[$i].Path) {
-                                    $Data.Buttons[$i].Path = $manifest.Buttons[$i].Path
+                    else {
+                        if ($manifest.Buttons) {
+                            for ($i = 0; $i -lt 3; $i++) {
+                                If ($manifest.Buttons[$i]) {
+                                    if ($manifest.Buttons[$i].Name) {
+                                        $Data.Buttons[$i].Name = $manifest.Buttons[$i].Name
+                                    }
+                                    if ($manifest.Buttons[$i].Path) {
+                                        $Data.Buttons[$i].Path = $manifest.Buttons[$i].Path
+                                    }
                                 }
                             }
-                        }
+                        }  
                     }
                 }
                 Write-Output $Data
@@ -250,34 +233,38 @@ function Get-VaultAppData {
                 }
                 $CurrentFolder = $_
                 $Data.Buttons.ForEach( { $_.Path = Join-Path $CurrentFolder ($_.Path -replace '^\./|^\.\\', '') })
-                Clear-Variable CurrentFolder
     
                 $manifest = $null
                 if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
                     $manifest = Get-Content -Raw -LiteralPath $manifestpath | ConvertFrom-Json
                 }
-                if ($manifest) {
-                    if ($manifest.Name) {
-                        $Data.Name = $manifest.Name
-                    }
-                    if ($manifest.Sortindex) {
-                        $Data.Sortindex = $manifest.Sortindex
-                    }
-                    if ($manifest.Category) {
-                        $Data.Category = $manifest.Category
-                    }
-                    if ($manifest.Buttons) {
-                        for ($i = 0; $i -lt 3; $i++) {
-                            If ($manifest.Buttons[$i]) {
-                                if ($manifest.Buttons[$i].Name) {
-                                    $Data.Buttons[$i].Name = $manifest.Buttons[$i].Name
-                                }
-                                if ($manifest.Buttons[$i].Path) {
-                                    $Data.Buttons[$i].Path = Join-Path $_ ($manifest.Buttons[$i].Path -replace '^\./|^\.\\', '')
-                                }
-                            }
+                foreach ($Property in ($Data.PSObject.Properties)) {
+                    if ($Property.Name -ne 'Buttons') {
+                        if ($manifest.($Property.Name)) {
+                            $Data.($Property.Name) = $manifest.($Property.Name)
                         }
                     }
+                    else {
+                        if ($manifest.Buttons) {
+                            for ($i = 0; $i -lt 3; $i++) {
+                                If ($manifest.Buttons[$i]) {
+                                    if ($manifest.Buttons[$i].Name) {
+                                        $Data.Buttons[$i].Name = $manifest.Buttons[$i].Name
+                                    }
+                                    if ($manifest.Buttons[$i].Path) {
+                                        $Data.Buttons[$i].Path = Join-Path $_ ($manifest.Buttons[$i].Path -replace '^\./|^\.\\', '')
+                                    }
+                                }
+                            }
+                        }  
+                    }
+                }
+                
+                if ($Data.Icon) {
+                    $Data.Icon = Join-Path $_ ($Data.Icon -replace '^\./|^\.\\', '') 
+                }
+                if ($Data.CategoryIcon) {
+                    $Data.CategoryIcon = Join-Path $CurrentFolder ($Data.CategoryIcon -replace '^\./|^\.\\', '') 
                 }
                 $Data.CategoryIndex = ($CategorySort | Where-Object 'Name' -EQ $Data.Category | Select-Object -First 1).SortIndex
                 Write-Output $Data
@@ -312,7 +299,7 @@ if ($LightTheme) {
 }
 #Round corners in win11
 if ((Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name CurrentBuild).CurrentBuild -ge 22000) {
-    $XAML = $XAML -replace 'Property="CornerRadius" Value="0"', 'Property="CornerRadius" Value="3"'
+    $XAML = $XAML -replace 'Property="CornerRadius" Value="0"', 'Property="CornerRadius" Value="3"' -replace 'Property="CornerRadius" Value="0,0,0,0"', 'Property="CornerRadius" Value="3,3,0,0"'
 }
 # $xaml | Out-File Debug.xaml 
 [xml]$XAML = $XAML
@@ -330,7 +317,7 @@ function New-WPFTab {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, ValueFromPipeline)] [string]    $Name,
-        [Parameter()] [string]    $color
+        [Parameter()] [string]    $color = "Orange"
     ) 
     process {
         if ($color) {
@@ -365,7 +352,8 @@ function New-WPFTab {
 function New-WPFCategory {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory, ValueFromPipeline)] [string]    $Name
+        [Parameter(Mandatory, ValueFromPipeline)] [string]    $Name,
+        [Parameter()] [string] $Icon
     )  
     Process {
         $CategoryBorder = [System.Windows.Controls.Border]@{
@@ -374,9 +362,20 @@ function New-WPFCategory {
         $CategoryPanel = [System.Windows.Controls.StackPanel]@{
             Orientation = 'Vertical'
         }
+        $CategoryLabelPanel = [System.Windows.Controls.StackPanel]@{
+            Style       = $GUI.WPF.FindResource('UtilitiesCategoryLabelPanel')
+            Orientation = 'Horizontal'
+        }
+        if ($Icon) {
+            $CategoryIcon = [System.Windows.Controls.Image]@{
+                Height = '32'
+                Width  = '32'
+                Source = [System.Windows.Media.Imaging.BitmapFrame]::Create($Icon)
+            }
+        }
         $CategoryLabel = [System.Windows.Controls.Label]@{
             Style   = $GUI.WPF.FindResource('UtilitiesCategoryLabel')
-            Content = $Name          
+            Content = $Name 
         }
         $CategoryInnerBorder = [System.Windows.Controls.Border]@{
             Style = $GUI.WPF.FindResource('CategoryInnerBorder') 
@@ -385,7 +384,9 @@ function New-WPFCategory {
             Orientation = 'Horizontal'
         }
         $CategoryBorder.AddChild($CategoryPanel)
-        $CategoryPanel.AddChild($CategoryLabel)
+        $CategoryPanel.AddChild($CategoryLabelPanel)
+        if ($CategoryIcon) { $CategoryLabelPanel.AddChild($CategoryIcon) }
+        $CategoryLabelPanel.AddChild($CategoryLabel)
         $CategoryPanel.AddChild($CategoryInnerBorder)
         $CategoryInnerBorder.AddChild($CategoryInnerPanel)
         
@@ -399,7 +400,8 @@ function New-WPFCard {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory, ValueFromPipelineByPropertyName)] [string]                $Name,
-        [Parameter(Mandatory, ValueFromPipelineByPropertyName)] [ManifestButton[]]      $Buttons
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)] [ManifestButton[]]      $Buttons,
+        [Parameter(ValueFromPipelineByPropertyName)] [string] $Icon
     )
     Process {
         # in CategoryInnerPanel
@@ -409,6 +411,17 @@ function New-WPFCard {
         $AppPanel = [System.Windows.Controls.StackPanel]@{
             Orientation = 'Vertical'
         } 
+        $AppLabelPanel = [System.Windows.Controls.StackPanel]@{
+            Style       = $GUI.WPF.FindResource('UtilitiesAppLabelPanel')
+            Orientation = 'Horizontal'
+        }
+        if ($Icon) {
+            $AppIcon = [System.Windows.Controls.Image]@{
+                Height = '16'
+                Width  = '16'
+                Source = [System.Windows.Media.Imaging.BitmapFrame]::Create($Icon)
+            }
+        }
         $AppLabel = [System.Windows.Controls.Label]@{
             Style   = $GUI.WPF.FindResource('UtilitiesAppLabel')
             Content = $Name
@@ -447,7 +460,10 @@ function New-WPFCard {
                             Tooltip             = ($Buttons[2]).Path.tostring()
                         } } | Add-Member -PassThru 'Path' ($Buttons[2]).Path))
         }
-        $AppPanel.AddChild($AppLabel)
+
+        $AppPanel.AddChild($AppLabelPanel)
+        if ($AppIcon) { $AppLabelPanel.AddChild($AppIcon) }
+        $AppLabelPanel.AddChild($AppLabel)
         $AppPanel.AddChild($AppInnerBorder)
         $AppInnerBorder.AddChild($AppButtonPanel)
         $AppOuterBorder.AddChild($AppPanel) 
@@ -488,7 +504,12 @@ function Add-VaultAppTab {
             }
             $VaultAppData | Group-Object Category | & { Process {
                 
-                    $Category = New-WPFCategory $_.Name
+                    if ($_.Group.CategoryIcon) {
+                        $Category = New-WPFCategory $_.Name -Icon ($_.Group.CategoryIcon | Select-Object -First 1)
+                    }
+                    else {
+                        $Category = New-WPFCategory $_.Name
+                    }
 
                     foreach ($Group in ($_.Group)) {
                         $Category.InnerObject.AddChild(($Group | New-WPFCard))
