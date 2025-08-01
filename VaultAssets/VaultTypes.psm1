@@ -1,0 +1,596 @@
+using namespace System.Collections.Generic
+using module '.\SpodiUtils.psm1'
+
+#region Deprecated
+class VaultAppBUtton_Old {
+    [string] $Name = ''
+    [string] $Path = ''
+}
+class VaultBase_Old {
+    [string] $Name = ''
+    [string] $Folder = ''
+    [int16]  $SortIndex = 0
+    [ValidateCount(3, 3)][VaultAppBUtton_Old[]] $Buttons = @([VaultAppBUtton_Old]@{
+            Name = 'Start'
+            Path = './Start.bat'
+        },
+        [VaultAppBUtton_Old]@{
+            Name = 'Folder'
+            Path = './'
+        },
+        [VaultAppBUtton_Old]@{
+            Name = 'Readme'
+            Path = './Readme.txt'
+        })
+}
+class VaultCategorySort {
+    [string] $Name = ''
+    [int16]  $SortIndex = 0
+}
+class VaultTab_Old : VaultBase_Old {
+    [string] $Color = ''
+    [VaultCategorySort[]] $CategorySort
+    [string] $Icon = ''
+}
+class VaultApp_Old : VaultBase_Old {
+    [string] $Category = ''
+    [int16]  $CategoryIndex = 0
+    [string] $CategoryIcon = ''
+    [string] $Icon = ''
+}
+class VaultData_Old : VaultApp_Old {
+    [String] $Color = ''
+    [String] $TabName = ''
+    [int16]  $TabIndex = 0
+    [String] $TabIcon = ''
+}
+function Get-VaultTabData_Old {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, ValueFromPipeline)] [string] $Directory,
+        [Parameter()] [string] $TabName
+    )
+    process {
+        if (!(Test-Path -LiteralPath $Directory -PathType Container)) {
+            Write-Warning "Non-existent folder: `"$Directory`"."
+            return
+        }
+        if (!$TabName) {
+            $AddOns = [FileSystemEntries]::Get($Directory, 'Directory', 'TopDirectoryOnly') 
+        }
+        else {
+            $AddOns = $Directory
+        }
+        if (!$AddOns) {
+            Write-Warning "Empty folder or wrong structure: `"$Directory`"."
+            return
+        }
+        $AddOns | & { process {
+                $Data = [VaultTab_Old]@{
+                    Folder = $_
+                    Name   = Split-Path $_ -Leaf
+                    Icon   = $Icon
+                }
+
+                $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
+
+                if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
+                    $manifest = Get-Content -Raw -LiteralPath $manifestpath | ConvertFrom-Json
+                }
+                foreach ($Property in ($Data.PSObject.Properties)) {
+                    if ($Property.Name -ne 'Buttons') {
+                        if ($manifest.($Property.Name)) {
+                            $Data.($Property.Name) = $manifest.($Property.Name)
+                        }
+                    }
+                    else {
+                        if ($manifest.Buttons) {
+                            for ($i = 0; $i -lt 3; $i++) {
+                                if ($manifest.Buttons[$i]) {
+                                    if ($manifest.Buttons[$i].Name) {
+                                        $Data.Buttons[$i].Name = $manifest.Buttons[$i].Name
+                                    }
+                                    if ($manifest.Buttons[$i].Path) {
+                                        $Data.Buttons[$i].Path = $manifest.Buttons[$i].Path
+                                    }
+                                }
+                            }
+                        }  
+                    }
+                }
+                Write-Output $Data
+            } }
+    } 
+}
+
+function Get-VaultAppData_Old {
+    [CmdletBinding()]
+    param(
+        [Parameter()] [string] $TabName,
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)] [string] $Folder,
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)] [VaultAppBUtton_Old[]] $Buttons,
+        [Parameter(ValueFromPipelineByPropertyName)] [VaultCategorySort[]] $CategorySort
+    )
+    process {
+        if (!(Test-Path $Folder -PathType Container)) {
+            Write-Warning "Non-existent folder: `"$Folder`""
+            return
+        }
+        if ($TabName) {
+            $tools = [FileSystemEntries]::Get($Folder, 'Directory', 'TopDirectoryOnly')
+  
+        }
+        else {
+            if ($Folder) {
+                $tools = [FileSystemEntries]::Get($Folder, 'Directory', 'TopDirectoryOnly') | & { process {
+                        [FileSystemEntries]::Get($_, 'Directory', 'TopDirectoryOnly')
+                    } }
+            }
+        }
+
+        if (!$tools) {
+            Write-Warning "Empty folder or wrong structure: `"$Folder`"."
+            return
+        }
+        $tools | & { process {
+ 
+                $categoryPath = [System.IO.Path]::GetDirectoryName($_)
+                $categoryFolder = Split-Path($categoryPath) -Leaf
+                #$readmepath = [System.IO.Path]::Combine($_, 'Readme.txt')
+                $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
+                $hasFiles = [FileSystemEntries]::Get($_) | & { process { if ($_ -notmatch 'VaultManifest\.json$') { $_ } } } | Select-Object -First 1
+                if ($hasFiles.count -lt 1) {
+                    Write-Warning "No objects in $_"
+                    return
+                }
+                $Data = [VaultApp_Old]@{
+                    Name     = Split-Path $_ -Leaf 
+                    Category = $categoryFolder
+                    Folder   = $_
+                    Buttons  = [VaultAppBUtton_Old[]]($Buttons | ConvertTo-Json -Depth 1 | ConvertFrom-Json) # Simplest way to make a deep copy instead of a reference
+                }
+                $CurrentFolder = $_
+                $Data.Buttons.ForEach( { $_.Path = Join-Path $CurrentFolder ($_.Path -replace '^\./|^\.\\', '') })
+    
+                $manifest = $null
+                if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
+                    $manifest = Get-Content -Raw -LiteralPath $manifestpath | ConvertFrom-Json
+                }
+                foreach ($Property in ($Data.PSObject.Properties)) {
+                    if ($Property.Name -ne 'Buttons') {
+                        if ($manifest.($Property.Name)) {
+                            $Data.($Property.Name) = $manifest.($Property.Name)
+                        }
+                    }
+                    else {
+                        if ($manifest.Buttons) {
+                            for ($i = 0; $i -lt 3; $i++) {
+                                if ($manifest.Buttons[$i]) {
+                                    if ($manifest.Buttons[$i].Name) {
+                                        $Data.Buttons[$i].Name = $manifest.Buttons[$i].Name
+                                    }
+                                    if ($manifest.Buttons[$i].Path) {
+                                        $Data.Buttons[$i].Path = Join-Path $_ ($manifest.Buttons[$i].Path -replace '^\./|^\.\\', '')
+                                    }
+                                }
+                            }
+                        }  
+                    }
+                }
+                
+                if ($Data.Icon) {
+                    $Data.Icon = Join-Path $_ ($Data.Icon -replace '^\./|^\.\\', '') 
+                }
+                if ($Data.CategoryIcon) {
+                    $Data.CategoryIcon = Join-Path $CurrentFolder ($Data.CategoryIcon -replace '^\./|^\.\\', '') 
+                }
+                $Data.CategoryIndex = ($CategorySort | Where-Object 'Name' -EQ $Data.Category | Select-Object -First 1).SortIndex
+                Write-Output $Data
+            } }
+    }
+}
+#endregion Deprecated
+
+enum VaultMergeType {
+    MergeEmpty
+    Keep
+    Overwrite
+}
+class VaultBase {
+    [string] $Name = ''
+    [string] $Icon = ''
+}
+Update-TypeData -Force -TypeName 'VaultBase' -DefaultKeyPropertySet @('Name')
+class VaultSortable : VaultBase, IComparable {
+    [SByte]  $SortIndex = 0
+
+    [int] CompareTo([object]$other) {
+        if ($this.SortIndex -eq $other.SortIndex) {
+            if ($this.Name -eq $other.Name) {
+                return 0
+            }
+            return $this.Name.CompareTo($other.Name)
+        }
+        return $this.SortIndex.CompareTo($other.SortIndex)
+    }
+}
+Update-TypeData -Force -TypeName 'VaultSortable' -DefaultKeyPropertySet @('SortIndex', 'Name')
+class VaultData {
+    [List[VaultTab]] $Tabs = [List[VaultTab]]::new(1)
+
+    VaultData() {}
+
+    VaultData([VaultData_Old[]]$Object) {
+   
+        foreach ($OldTab in ($Object | Group-Object TabName)) {
+            $NewTab = [VaultTab]@{
+                Name      = $OldTab.Name
+                Color     = $OldTab.Group.Color | Select-Object -First 1
+                SortIndex = $OldTab.Group.TabIndex | Select-Object -First 1
+                Icon      = $OldTab.Group.TabIcon | Select-Object -First 1
+            }
+
+            $this.Tabs.Add($NewTab)
+            foreach ($OldCategory in (($OldTab.Group | Group-Object Category))) {
+                $NewCategory = [VaultCategory]@{
+                    Name      = $OldCategory.Name
+                    Icon      = $OldCategory.Group.CategoryIcon | Select-Object -First 1
+                    SortIndex = $OldCategory.Group.CategoryIndex | Select-Object -First 1       
+                }
+                if ($null -eq $NewTab.Categories) {
+                    $NewTab.Categories = [List[VaultCategory]]::new()
+                }
+                $NewTab.Categories.Add($NewCategory)
+                foreach ($OldApp in ($OldCategory.Group)) {
+                    $NewApp = [VaultApp]@{
+                        Name      = $OldApp.Name
+                        Icon      = $OldApp.Icon -replace ($OldApp.Folder -replace '\\', '\\'), '.\'
+                        BasePath  = $OldApp.Folder
+                        SortIndex = $OldApp.SortIndex
+                    }
+                    if ($null -eq $NewCategory.Apps) {
+                        $NewCategory.Apps = [List[VaultApp]]::new()
+                    }
+                    $NewCategory.Apps.Add($NewApp)
+                    foreach ($OldButton in ($OldApp.Buttons)) {
+                        $NewButton = [VaultAppButton]@{
+                            Name = $OldButton.Name
+                            Path = $OldButton.Path -replace ($OldApp.Folder -replace '\\', '\\'), '.\'
+                        }
+                        if ($null -eq $NewApp.Buttons) {
+                            $NewApp.Buttons = [List[VaultAppButton]]::new(3)
+                        }
+                        $NewApp.Buttons.Add($NewButton)
+                    }
+                }
+                
+            }
+            
+        }
+    }
+
+    VaultData([Object]$Object) {
+        foreach ($Property in (($this | Get-Member -MemberType Properties).Name)) {
+            if ($Property -eq 'Tabs') {
+                [List[VaultTab]]$this.Tabs = [VaultTab[]]$object.Tabs
+            }
+            else {
+                $this.$Property = $Object.$Property
+            }
+        }
+    }
+
+    static [VaultData] FromManifest([string] $Path) {
+        if (!(Test-Path -LiteralPath $Path -PathType Leaf)) {
+            Write-Warning "Manifest file not found: `"$Path`"."
+            return $null
+        }
+        return Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json
+    }
+
+    static [VaultData] FromDirectory([string] $Path) {
+        if (!(Test-Path -LiteralPath $Path -PathType Container)) {
+            Write-Warning "Directory not found: `"$Path`"."
+            return $null
+        }
+        $Data = [VaultData]::new()
+        $Directories = [FileSystemEntries]::Get($Path, 'Directory', 'TopDirectoryOnly')
+        foreach ($Tab in  $Directories) {
+            $Data.Tabs.Add([VaultTab]::FromDirectory($Tab))
+        }
+        $Data.Tabs.TrimExcess()
+        return $Data
+    }
+
+
+
+    [void] Merge([VaultData] $other) {
+        $this.Merge($other, 0)
+    }
+
+    [void] Merge([VaultData] $other, [VaultMergeType] $MergeType) {
+        foreach ($Tab in $other.Tabs) {
+            if ($Tab.Name -in $this.Tabs.Name) {
+                ($this.Tabs | Where-Object Name -EQ $Tab.Name).Merge($Tab, $MergeType)
+            }
+            else {
+                $this.Tabs.Add($Tab)
+            }
+        }
+    }
+
+    [void] Sort () {
+        $this.Tabs.Sort()
+        foreach ($Tab in $this.Tabs) {
+            $Tab.Sort() 
+        }
+    }
+}
+class VaultTab : VaultSortable {
+    [string] $Path = ''
+    [string] $Color = ''
+    [List[VaultCategory]] $Categories = [List[VaultCategory]]::new(1)
+
+    VaultTab() {}
+
+    VaultTab([Object]$Object) {
+        foreach ($Property in (($this | Get-Member -MemberType Properties).Name)) {
+            if ($Property -eq 'Category') {
+                [List[VaultCategory]]$this.Categories = [VaultCategory[]]$object.Categories
+            }
+            else {
+                $this.$Property = $Object.$Property
+            }
+        }
+    }
+    
+
+    static [VaultTab] FromDirectory([string] $Path) {
+        if (!(Test-Path -LiteralPath $Path -PathType Container)) {
+            Write-Warning "Directory not found: `"$Path`"."
+            return $null
+        }
+        $Data = [VaultTab]::new()
+        $Data.Name = Split-Path $Path -Leaf
+        $Directories = [FileSystemEntries]::Get($Path, 'Directory', 'TopDirectoryOnly')
+        foreach ($Category in  $Directories) {
+            $Data.Categories.Add([VaultCategory]::FromDirectory($Category))
+        }
+        $Data.Categories.TrimExcess()
+        return $Data
+    }
+
+
+
+    [void] Merge([VaultTab] $other) {
+        $this.Merge($other, 0)
+    }
+
+    [void] Merge([VaultTab] $other, [VaultMergeType] $MergeType) {
+        foreach ($Category in $other.Categories) {
+            if ($Category.Name -in $this.Categories.Name) {
+                ($this.Categories | Where-Object Name -EQ $Category.Name).Merge($Category)
+            }
+            else {
+                $this.Categories.Add($Category)
+            }
+        }
+        foreach ($Property in (($this | Get-Member -MemberType Properties).Name)) {
+            if ($Property -ne 'Categories') {
+                switch ($MergeType) {
+                    'MergeEmpty' {
+                        if (!$this.$Property -and $other.$Property) { $this.$Property = $other.$Property }
+                        break
+                    }
+                    'Overwrite' {
+                        $this.$Property = $other.$Property
+                        break
+                    }
+                    'Keep' {
+                        # Keep own properties
+                        break
+                    }
+                    Default {
+                        throw "Unknown MergeType `"$_`""
+                    }
+                }
+            }
+        }
+    }
+
+    [void] Sort () {
+        $this.Categories.Sort()
+        foreach ($Category in $this.Categories) {
+            $Category.Sort() 
+        }
+    }
+}
+
+#Update-TypeData  -Force -TypeName 'VaultTab' -MemberType AliasProperty -MemberName 'Folder' -Value 'Path'
+class VaultCategory : VaultSortable {
+    [List[VaultApp]] $Apps = [List[VaultApp]]::new(1)
+
+    VaultCategory() {}
+
+    VaultCategory([Object]$Object) {
+        foreach ($Property in (($this | Get-Member -MemberType Properties).Name)) {
+            if ($Property -eq 'Apps') {
+                [List[VaultApp]]$this.Apps = [VaultApp[]]$object.Apps
+            }
+            else {
+                $this.$Property = $Object.$Property
+            }
+        }
+    }
+    
+
+    static [VaultCategory] FromDirectory([string] $Path) {
+        if (!(Test-Path -LiteralPath $Path -PathType Container)) {
+            Write-Warning "Directory not found: `"$Path`"."
+            return $null
+        }
+        $Data = [VaultCategory]::new()
+        $Data.Name = Split-Path $Path -Leaf
+        $Directories = [FileSystemEntries]::Get($Path, 'Directory', 'TopDirectoryOnly')
+        foreach ($App in  $Directories) {
+            $Data.Apps.Add([VaultApp]::FromDirectory($App))
+        }
+        $Data.Apps.TrimExcess()
+        return $Data
+    }
+
+
+    [void] Merge([VaultCategory] $other) {
+        $this.Merge($other, 0)
+    }
+
+    [void] Merge([VaultCategory] $other, [VaultMergeType] $MergeType) {
+        foreach ($App in $other.Apps) {
+            if ($App.Name -in $this.Apps.Name) {
+                ($this.Apps | Where-Object Name -EQ $App.Name).Merge($App)
+            }
+            else {
+                $this.Apps.Add($App)
+            }
+        }
+        foreach ($Property in (($this | Get-Member -MemberType Properties).Name)) {
+            if ($Property -ne 'Apps') {
+                switch ($MergeType) {
+                    'MergeEmpty' {
+                        if (!$this.$Property -and $other.$Property) { $this.$Property = $other.$Property }
+                        break
+                    }
+                    'Overwrite' {
+                        $this.$Property = $other.$Property
+                        break
+                    }
+                    'Keep' {
+                        # Keep own properties
+                        break
+                    }
+                    Default {
+                        throw "Unknown MergeType `"$_`""
+                    }
+                }
+            }
+        }
+    }
+
+    [void] Sort () {
+        $this.Apps.Sort()
+        foreach ($App in $this.App) {
+            $App.Sort() 
+        }
+    }
+}
+class VaultApp : VaultSortable {
+    [string] $BasePath = ''
+    [List[VaultAppButton]]  $Buttons = [List[VaultAppButton]]::new(3)
+
+    VaultApp() {}
+
+    VaultApp([Object]$Object) {
+        foreach ($Property in (($this | Get-Member -MemberType Properties).Name)) {
+            if ($Property -eq 'Buttons') {
+                [List[VaultAppButton]]$this.Buttons = [VaultAppButton[]]$object.Buttons
+            }
+            else {
+                $this.$Property = $Object.$Property
+            }
+        }
+    }
+
+    static [VaultApp] FromDirectory([string] $Path) {
+        if (!(Test-Path -LiteralPath $Path -PathType Container)) {
+            Write-Warning "Directory not found: `"$Path`"."
+            return $null
+        }
+        $Data = [VaultApp]::new()
+        $Data.Name = Split-Path $Path -Leaf
+
+        return $Data
+    }
+
+
+
+    [void] Merge([VaultApp] $other) {
+        $this.Merge($other, 0)
+    }
+
+    [void] Merge([VaultApp] $other, [VaultMergeType] $MergeType) {
+        foreach ($Button in $other.Buttons) {
+            if ($Button.Name -in $this.Buttons.Name) {
+                ($this.Buttons | Where-Object Name -EQ $Button.Name).Merge($Button)
+            }
+            else {
+                $this.Buttons.Add($Button)
+            }
+        }
+        foreach ($Property in (($this | Get-Member -MemberType Properties).Name)) {
+            if ($Property -ne 'Buttons') {
+                switch ($MergeType) {
+                    'MergeEmpty' {
+                        if (!$this.$Property -and $other.$Property) { $this.$Property = $other.$Property }
+                        break
+                    }
+                    'Overwrite' {
+                        $this.$Property = $other.$Property
+                        break
+                    }
+                    'Keep' {
+                        # Keep own properties
+                        break
+                    }
+                    Default {
+                        throw "Unknown MergeType `"$_`""
+                    }
+                }
+            }
+        }
+    }
+
+    [void] Sort () {
+        $this.Buttons.Sort()
+    }
+
+
+}
+
+#Update-TypeData  -Force -TypeName 'VaultApp' -MemberType AliasProperty -MemberName 'Folder' -Value 'BasePath'
+class VaultAppButton : IComparable {
+
+    [string] $Name = ''
+    [string] $Path = ''
+    [SByte]  $SortIndex = 0
+
+    [int] CompareTo([object]$other) {
+        return $this.SortIndex.CompareTo($other.SortIndex)
+    }
+
+    [void] Merge([VaultAppButton] $other) {
+        $this.Merge($other, 0)
+    }
+
+    [void] Merge([VaultAppButton] $other, [VaultMergeType] $MergeType) {
+        foreach ($Property in (($this | Get-Member -MemberType Properties).Name)) {
+            switch ($MergeType) {
+                'MergeEmpty' {
+                    if (!$this.$Property -and $other.$Property) { $this.$Property = $other.$Property }
+                    break
+                }
+                'Overwrite' {
+                    $this.$Property = $other.$Property
+                    break
+                }
+                'Keep' {
+                    # Keep own properties
+                    break
+                }
+                Default {
+                    throw "Unknown MergeType `"$_`""
+                }
+            }
+        }
+    }
+}
+Update-TypeData -Force -TypeName 'VaultAppButton' -DefaultKeyPropertySet @('SortIndex')

@@ -1,7 +1,12 @@
+using namespace System.Collections.Generic
+using namespace System.Windows.Controls
+using module '.\VaultAssets\VaultTypes.psm1'
+
 [CmdletBinding()]
 param (
     [Parameter()][switch]$NoGUI,
-    [Parameter(Position = 0)][string]$WorkingDir
+    [Parameter(Position = 0)][string]$WorkingDir,
+    [Parameter()][switch]$Dev
 )
 
 Clear-Host
@@ -32,56 +37,20 @@ if ($NoGUI) {
 Write-Host -ForegroundColor DarkRed 'Closing this console kills the GUI and any function currently running!'
 Write-Host
 
-class ManifestButton {
-    [string] $Name
-    [string] $Path
-}
-class VaultManifest {
-    [string] $Name
-    [string] $Folder
-    [int16]  $SortIndex = 0
-    [ValidateCount(3, 3)][ManifestButton[]] $Buttons = @([ManifestButton]@{
-            Name = 'Start'
-            Path = './Start.bat'
-        },
-        [ManifestButton]@{
-            Name = 'Folder'
-            Path = './'
-        },
-        [ManifestButton]@{
-            Name = 'Readme'
-            Path = './Readme.txt'
-        })
-}
-class VaultCategorySort {
-    [string] $Name
-    [int16]  $SortIndex = 0
-}
-class VaultTabManifest : VaultManifest {
-    [string] $Color
-    [VaultCategorySort[]] $CategorySort
-}
-class VaultCardManifest : VaultManifest {
-    [string] $Category
-    [int16]  $CategoryIndex = 0
-    [string] $CategoryIcon
-    [string] $Icon
-}
-
 class WPFTab {
     $Object
     $InnerObject
 }
-Update-TypeData -TypeName 'WPFTab' -MemberType ScriptProperty -MemberName 'InnerObject' -Value {
+Update-TypeData -Force -TypeName 'WPFTab' -MemberType ScriptProperty -MemberName 'InnerObject' -Value {
     $this.Object.Content.Content.Children
-} -Force
+}
 class WPFCategory {
     $Object
     $InnerObject
 }
-Update-TypeData -TypeName 'WPFCategory' -MemberType ScriptProperty -MemberName 'InnerObject' -Value {
+Update-TypeData  -Force -TypeName 'WPFCategory' -MemberType ScriptProperty -MemberName 'InnerObject' -Value {
     $this.Object.Child.Children[1].Child
-} -Force
+}
 
 
 #region GUI functions
@@ -132,154 +101,23 @@ function New-XMLNamespaceManager {
 }
 #endregion GUI functions
 #region VaultApp func
-function Get-VaultTabData {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory, ValueFromPipeline)] [string] $Directory,
-        [Parameter()] [string] $TabName
-    )
-    Process {
-        if (!(Test-Path -LiteralPath $Directory -PathType Container)) {
-            Write-Warning "Non-existent folder: `"$Directory`"."
-            return
-        }
-        if (!$TabName) {
-            $AddOns = Get-FileSystemEntries -Directory $Directory
-        }
-        else {
-            $AddOns = $Directory
-        }
-        if (!$AddOns) {
-            Write-Warning "Empty folder or wrong structure: `"$Directory`"."
-            return
-        }
-        $AddOns | & { Process {
-                $Data = [VaultTabManifest]@{
-                    Folder = $_
-                    Name   = Split-Path $_ -Leaf
-                }
 
-                $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
 
-                if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
-                    $manifest = Get-Content -Raw -LiteralPath $manifestpath | ConvertFrom-Json
-                }
-                foreach ($Property in ($Data.PSObject.Properties)) {
-                    if ($Property.Name -ne 'Buttons') {
-                        if ($manifest.($Property.Name)) {
-                            $Data.($Property.Name) = $manifest.($Property.Name)
-                        }
-                    }
-                    else {
-                        if ($manifest.Buttons) {
-                            for ($i = 0; $i -lt 3; $i++) {
-                                If ($manifest.Buttons[$i]) {
-                                    if ($manifest.Buttons[$i].Name) {
-                                        $Data.Buttons[$i].Name = $manifest.Buttons[$i].Name
-                                    }
-                                    if ($manifest.Buttons[$i].Path) {
-                                        $Data.Buttons[$i].Path = $manifest.Buttons[$i].Path
-                                    }
-                                }
-                            }
-                        }  
-                    }
-                }
-                Write-Output $Data
-            } }
-    } 
-}
-
-function Get-VaultAppData {
-    [CmdletBinding()]
-    param(
-        [Parameter()] [string] $TabName,
-        [Parameter(Mandatory, ValueFromPipelineByPropertyName)] [string] $Folder,
-        [Parameter(Mandatory, ValueFromPipelineByPropertyName)] [ManifestButton[]] $Buttons,
-        [Parameter(ValueFromPipelineByPropertyName)] [VaultCategorySort[]] $CategorySort
-    )
-    Process {
-        if (!(Test-Path $Folder -PathType Container)) {
-            Write-Warning "Non-existent folder: `"$Folder`""
-            return
-        }
-        if ($TabName) {
-            $tools = Get-FileSystemEntries -Directory $Folder
-        }
-        else {
-            if ($Folder) {
-                $tools = Get-FolderSubs $Folder
+# Formats JSON in a nicer format than the built-in ConvertTo-Json does.
+function Format-Json([Parameter(Mandatory, ValueFromPipeline)][String] $json) {
+    $indent = 0;
+    ($json -split '\r?\n' | & { process {
+            if ($_ -match '[\}\]]\s*,?\s*$') {
+                # This line ends with ] or }, decrement the indentation level
+                $indent--
             }
-        }
-
-        if (!$tools) {
-            Write-Warning "Empty folder or wrong structure: `"$Folder`"."
-            return
-        }
-        $tools | & { Process {
-                $categoryPath = [System.IO.Path]::GetDirectoryName($_)
-                $categoryFolder = Split-Path($categoryPath) -Leaf
-                #$readmepath = [System.IO.Path]::Combine($_, 'Readme.txt')
-                $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
-                $hasFiles = Get-FileSystemEntries $_ | & { Process { if ($_ -NotMatch 'VaultManifest\.json$') { $_ } } } | Select-Object -First 1
-                if ($hasFiles.count -lt 1) {
-                    Write-Warning "No objects in $_"
-                    return
-                }
-                $Data = [VaultCardManifest]@{
-                    Name     = Split-Path $_ -Leaf 
-                    Category = $categoryFolder
-                    Buttons  = [ManifestButton[]]($Buttons | ConvertTo-Json -Depth 1 | ConvertFrom-Json) # Simplest way to make a deep copy instead of a reference
-                }
-                $CurrentFolder = $_
-                $Data.Buttons.ForEach( { $_.Path = Join-Path $CurrentFolder ($_.Path -replace '^\./|^\.\\', '') })
-    
-                $manifest = $null
-                if (Test-Path -PathType Leaf -LiteralPath $manifestpath) {
-                    $manifest = Get-Content -Raw -LiteralPath $manifestpath | ConvertFrom-Json
-                }
-                foreach ($Property in ($Data.PSObject.Properties)) {
-                    if ($Property.Name -ne 'Buttons') {
-                        if ($manifest.($Property.Name)) {
-                            $Data.($Property.Name) = $manifest.($Property.Name)
-                        }
-                    }
-                    else {
-                        if ($manifest.Buttons) {
-                            for ($i = 0; $i -lt 3; $i++) {
-                                If ($manifest.Buttons[$i]) {
-                                    if ($manifest.Buttons[$i].Name) {
-                                        $Data.Buttons[$i].Name = $manifest.Buttons[$i].Name
-                                    }
-                                    if ($manifest.Buttons[$i].Path) {
-                                        $Data.Buttons[$i].Path = Join-Path $_ ($manifest.Buttons[$i].Path -replace '^\./|^\.\\', '')
-                                    }
-                                }
-                            }
-                        }  
-                    }
-                }
-                
-                if ($Data.Icon) {
-                    $Data.Icon = Join-Path $_ ($Data.Icon -replace '^\./|^\.\\', '') 
-                }
-                if ($Data.CategoryIcon) {
-                    $Data.CategoryIcon = Join-Path $CurrentFolder ($Data.CategoryIcon -replace '^\./|^\.\\', '') 
-                }
-                $Data.CategoryIndex = ($CategorySort | Where-Object 'Name' -EQ $Data.Category | Select-Object -First 1).SortIndex
-                Write-Output $Data
-            } }
-    }
-}
-function Write-VaultManifest {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)] [string] $Path,
-        [Parameter(Mandatory, ValueFromPipeline)] [VaultManifest] $ManifestData
-    )
-    Process {
-        
-    }
+            $line = ('    ' * $indent) + $($_.TrimStart() -replace '":  (["{[])', '": $1' -replace ':  ', ': ')
+            if ($_ -match '[\{\[]\s*$') {
+                # This line ends with [ or {, increment the indentation level
+                $indent++
+            }
+            $line
+        } }) -join [Environment]::NewLine
 }
 #endregion VaultApp func
 #region WPF init
@@ -310,35 +148,50 @@ $GUI.WPF = [Windows.Markup.XamlReader]::Load( (New-Object System.Xml.XmlNodeRead
 $GUI.Nodes = $XAML.SelectNodes('//*[@x:Name]', $GUI.NsMgr) | ForEach-Object {
     @{ $_.Name = $GUI.WPF.FindName($_.Name) }
 }
-#endregion WPF init	
+#endregion WPF init
 
 #region VaultApp GUI func
 function New-WPFTab {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory, ValueFromPipeline)] [string]    $Name,
-        [Parameter()] [string]    $color = "Orange"
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)] [string]    $Name,
+        [Parameter(ValueFromPipelineByPropertyName)] [string]    $color,
+        [Parameter(ValueFromPipelineByPropertyName)] [string]    $Icon
     ) 
     process {
-        if ($color) {
-            $Tab = [System.Windows.Controls.TabItem]@{
-                Header     = $Name
-                Foreground = $color
-            }
-        }
-        else {
-            $Tab = [System.Windows.Controls.TabItem]@{
-                Header = $Name
-            }
-        }
-        $TabScroll = [System.Windows.Controls.ScrollViewer]@{
-            VerticalScrollBarVisibility = 'Auto'
-        }
-        $TabGrid = [System.Windows.Controls.Grid]@{
-        }
-        $TabWrap = [System.Windows.Controls.WrapPanel]@{
+        $HeaderStack = [StackPanel]@{
+            Orientation = 'Horizontal'
         }
 
+        if ($Icon) {
+            $TabIcon = [Image]@{
+                Height = '16'
+                Source = [System.Windows.Media.Imaging.BitmapFrame]::Create($Icon)
+                Margin = '-6,0,6,0'
+            }
+            $HeaderStack.AddChild($TabIcon)
+        }
+        $TabHeader = [TextBlock]@{
+            Text = $Name
+        }
+        $HeaderStack.AddChild($TabHeader)
+
+        if (!$color) {
+            $color = 'Orange'
+        }
+        $Tab = [TabItem]@{
+            Header     = $HeaderStack
+            Foreground = $color
+        }
+
+        $TabScroll = [ScrollViewer]@{
+            VerticalScrollBarVisibility = 'Auto'
+        }
+        $TabGrid = [Grid]@{
+        }
+        $TabWrap = [WrapPanel]@{
+        }
+        
         $TabGrid.AddChild($TabWrap)
         $TabScroll.AddChild($TabGrid)
         $Tab.AddChild($TabScroll)
@@ -352,35 +205,34 @@ function New-WPFTab {
 function New-WPFCategory {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory, ValueFromPipeline)] [string]    $Name,
-        [Parameter()] [string] $Icon
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)] [string]    $Name,
+        [Parameter(ValueFromPipelineByPropertyName)] [string] $Icon
     )  
-    Process {
-        $CategoryBorder = [System.Windows.Controls.Border]@{
+    process {
+        $CategoryBorder = [Border]@{
             Style = $GUI.WPF.FindResource('UtilitiesCategoryBorder')
         }
-        $CategoryPanel = [System.Windows.Controls.StackPanel]@{
+        $CategoryPanel = [StackPanel]@{
             Orientation = 'Vertical'
         }
-        $CategoryLabelPanel = [System.Windows.Controls.StackPanel]@{
+        $CategoryLabelPanel = [StackPanel]@{
             Style       = $GUI.WPF.FindResource('UtilitiesCategoryLabelPanel')
             Orientation = 'Horizontal'
         }
         if ($Icon) {
-            $CategoryIcon = [System.Windows.Controls.Image]@{
+            $CategoryIcon = [Image]@{
                 Height = '32'
-                Width  = '32'
                 Source = [System.Windows.Media.Imaging.BitmapFrame]::Create($Icon)
             }
         }
-        $CategoryLabel = [System.Windows.Controls.Label]@{
+        $CategoryLabel = [Label]@{
             Style   = $GUI.WPF.FindResource('UtilitiesCategoryLabel')
             Content = $Name 
         }
-        $CategoryInnerBorder = [System.Windows.Controls.Border]@{
+        $CategoryInnerBorder = [Border]@{
             Style = $GUI.WPF.FindResource('CategoryInnerBorder') 
         }
-        $CategoryInnerPanel = [System.Windows.Controls.WrapPanel]@{
+        $CategoryInnerPanel = [WrapPanel]@{
             Orientation = 'Horizontal'
         }
         $CategoryBorder.AddChild($CategoryPanel)
@@ -399,68 +251,53 @@ function New-WPFCategory {
 function New-WPFCard {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory, ValueFromPipelineByPropertyName)] [string]                $Name,
-        [Parameter(Mandatory, ValueFromPipelineByPropertyName)] [ManifestButton[]]      $Buttons,
-        [Parameter(ValueFromPipelineByPropertyName)] [string] $Icon
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)] [string]        $Name,
+        [Parameter(ValueFromPipelineByPropertyName)] [List[VaultAppButton]]     $Buttons,
+        [Parameter(ValueFromPipelineByPropertyName)] [string]                   $Icon,
+        [Parameter(ValueFromPipelineByPropertyName)] [string]                   $BasePath
     )
-    Process {
+    process {
         # in CategoryInnerPanel
-        $AppOuterBorder = [System.Windows.Controls.Border]@{
+        $AppOuterBorder = [Border]@{
             Style = $GUI.WPF.FindResource('UtilitiesCardOuterBorder')
         }
-        $AppPanel = [System.Windows.Controls.StackPanel]@{
+        $AppPanel = [StackPanel]@{
             Orientation = 'Vertical'
         } 
-        $AppLabelPanel = [System.Windows.Controls.StackPanel]@{
+        $AppLabelPanel = [StackPanel]@{
             Style       = $GUI.WPF.FindResource('UtilitiesAppLabelPanel')
             Orientation = 'Horizontal'
         }
-        if ($Icon) {
-            $AppIcon = [System.Windows.Controls.Image]@{
+        $IconPath = Join-Path $BasePath ($Icon -replace '^\.\\', '')
+        if (Test-Path -PathType Leaf $IconPath) {
+            $AppIcon = [Image]@{
                 Height = '16'
-                Width  = '16'
-                Source = [System.Windows.Media.Imaging.BitmapFrame]::Create($Icon)
+                Source = [System.Windows.Media.Imaging.BitmapFrame]::Create($IconPath)
             }
         }
-        $AppLabel = [System.Windows.Controls.Label]@{
+
+        $AppLabel = [Label]@{
             Style   = $GUI.WPF.FindResource('UtilitiesAppLabel')
             Content = $Name
         }
-        $AppInnerBorder = [System.Windows.Controls.Border]@{
+        $AppInnerBorder = [Border]@{
             Style = $GUI.WPF.FindResource('CardInnerBorder')  
         }
-        $AppButtonPanel = [System.Windows.Controls.Grid]@{
-            Style = $GUI.WPF.FindResource('CardButtonPanel')
+        $AppButtonPanel = [WrapPanel]@{
+            Style       = $GUI.WPF.FindResource('CardButtonPanel')
+            Orientation = 'Horizontal'
         }
-
-        if ($Buttons[0] -and (Test-Path -LiteralPath $Buttons[0].path)) {
-            $AppButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
-                            Style               = $GUI.WPF.FindResource('MiscOpenButton')
-                            Name                = 'MiscOpenButton'  
-                            Content             = ($Buttons[0]).Name
-                            HorizontalAlignment = 'Left'
-                            Tooltip             = ($Buttons[0]).Path.tostring()
-                        } } | Add-Member -PassThru 'Path' ($Buttons[0]).Path)) #feels like this shoudn't be possible. but it is!
+        foreach ($button in $Buttons) {
+            $ButtonPath = Join-Path $BasePath ($Button.path -replace '^\.\\', '')
+            if ((Test-Path -LiteralPath $ButtonPath)) {
+                $AppButtonPanel.AddChild((& { [Button]@{
+                                Style   = $GUI.WPF.FindResource('MiscOpenButton')
+                                Name    = 'MiscOpenButton'  
+                                Content = $Button.Name
+                                Tooltip = $ButtonPath.tostring()
+                            } } | Add-Member -PassThru 'Path' $ButtonPath )) #feels like this shoudn't be possible. but it is!
+            }
         }
-        if ($Buttons[1] -and (Test-Path -LiteralPath $Buttons[1].path)) {
-            $AppButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
-                            Style               = $GUI.WPF.FindResource('MiscOpenButton')
-                            Content             = ($Buttons[1]).Name
-                            Name                = 'MiscOpenButton'
-                            HorizontalAlignment = 'Center'
-                            Tooltip             = ($Buttons[1]).Path.tostring()
-                        } } | Add-Member -PassThru 'Path' ($Buttons[1]).Path))
-        }
-        if ($Buttons[2] -and (Test-Path -LiteralPath $Buttons[2].path)) {
-            $AppButtonPanel.AddChild((& { [System.Windows.Controls.Button]@{
-                            Style               = $GUI.WPF.FindResource('MiscOpenButton')
-                            Content             = ($Buttons[2]).Name
-                            Name                = 'MiscOpenButton'
-                            HorizontalAlignment = 'Right'
-                            Tooltip             = ($Buttons[2]).Path.tostring()
-                        } } | Add-Member -PassThru 'Path' ($Buttons[2]).Path))
-        }
-
         $AppPanel.AddChild($AppLabelPanel)
         if ($AppIcon) { $AppLabelPanel.AddChild($AppIcon) }
         $AppLabelPanel.AddChild($AppLabel)
@@ -471,59 +308,81 @@ function New-WPFCard {
     }
 }
 
-function Add-VaultAppTab {
+function Add-VaultAppTab_Old {
     [CmdletBinding()]
     param(
         [Parameter()] [string] $TabName,
-        [Parameter(Mandatory)] [string] $Directory
+        [Parameter(Mandatory)] [string] $Directory,
+        [Parameter()] [string] $Icon
     )
-    Process {
+    process {
         if ($TabName) {
-            $TabData = Get-VaultTabData $Directory $TabName | Sort-Object SortIndex, Name
+            $TabData = Get-VaultTabData_Old $Directory $TabName | Sort-Object SortIndex, Name
         }
         else {
-            $TabData = Get-VaultTabData $Directory | Sort-Object SortIndex, Name
+            $TabData = Get-VaultTabData_Old $Directory | Sort-Object SortIndex, Name
         }
 
         foreach ($Data in $TabData) { 
-            
             if ($TabName) {
-                $VaultAppData = $Data | Get-VaultAppData $TabName | Sort-Object CategoryIndex, Category, SortIndex, Name
+                $VaultAppData = $Data | Get-VaultAppData_Old $TabName | Sort-Object CategoryIndex, Category, SortIndex, Name
             }
             else {
-                $VaultAppData = $Data | Get-VaultAppData | Sort-Object CategoryIndex, Category, SortIndex, Name
+                $VaultAppData = $Data | Get-VaultAppData_Old | Sort-Object CategoryIndex, Category, SortIndex, Name
             }
             if (!$VaultAppData) {
                 return
             }
+
+            $Command = @{
+                Name = $Data.Name
+            }
+            if ($Data.Icon) {
+                $Command.add('Icon', $Data.Icon)
+            }
             if ($Data.Color) {
-                $Tab = New-WPFTab $Data.Name $Data.Color
+                $Command.add('Color', $Data.Color)
             }
-            else {
-                $Tab = New-WPFTab $Data.Name
-            }
-            $VaultAppData | Group-Object Category | & { Process {
-                
-                    if ($_.Group.CategoryIcon) {
-                        $Category = New-WPFCategory $_.Name -Icon ($_.Group.CategoryIcon | Select-Object -First 1)
-                    }
-                    else {
-                        $Category = New-WPFCategory $_.Name
-                    }
+            
+            $VaultAppData | Add-Member -MemberType NoteProperty -Name 'Color' -Value $Data.Color
+            $VaultAppData | Add-Member -MemberType NoteProperty -Name 'TabName' -Value $Data.Name
+            $VaultAppData | Add-Member -MemberType NoteProperty -Name 'TabIndex' -Value $Data.SortIndex
+            $VaultAppData | Add-Member -MemberType NoteProperty -Name 'TabIcon' -Value $Data.Icon
 
-                    foreach ($Group in ($_.Group)) {
-                        $Category.InnerObject.AddChild(($Group | New-WPFCard))
-                    }
-
-                    $Tab.InnerObject.AddChild($Category.Object)
-                } }
-            $GUI.Nodes.Tabs.AddChild($Tab.Object)
-        }      
+            Write-Output $VaultAppData
+        }
     }
 }
+function Add-VaultAppTab {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]  [VaultData]$Data
+    )
+    foreach ($TabData in $Data.Tabs) {
+        $WPFTab = $TabData | New-WPFTab
+        #$TabData | out-Host
+        foreach ($CategoryData in $TabData.Categories) {
+            #$CategoryData | out-Host
+            $WPFCategory = $CategoryData | New-WPFCategory
+            foreach ($AppData in $CategoryData.Apps) {
+                $WPFCategory.InnerObject.AddChild(($AppData | New-WPFCard))  
+            }
+            $WPFTab.InnerObject.AddChild($WPFCategory.Object)
+        }
+        Write-Output $WPFTab.Object
+    }
+}
+
+
 #endregion VaultApp GUI func
 
+
+
 #region Code behind
+if (!$dev) {
+    $GUI.Nodes.DevTab.Visibility = 'Collapsed'
+    $GUI.Nodes.Tabs.SelectedIndex = 1
+}
 $defaultinput = Join-Path (Get-Location) 'input'
 $defaultoutput = Join-Path (Get-Location) 'output'
 $defaultbackup = Join-Path (Get-Location) 'backup'
@@ -536,6 +395,7 @@ $GUI.Nodes.Outputsplit.Text = $defaultoutput
 $GUI.Nodes.FolderizeOutput.Text = $defaultoutput
 $GUI.Nodes.Cuegen.Text = $defaultinput
 $GUI.Nodes.Backup.Text = $defaultbackup
+
 
 $extensionListW = @()
 if (Test-Path -PathType Leaf -LiteralPath $extensionListPath) {
@@ -559,14 +419,19 @@ $GUI.Nodes.FolderizeRegexWhite.Text = $RegexW
 $RegexB = $GUI.Nodes.ListFolderizeExtBlack.ItemsSource.where({ $_[1] }).ForEach({ ($_[0] -replace '(\\|\^|\$|\.|\||\?|\*|\+|\(|\)|\[\{)', '\$1') + '$' }) -join '|'
 $GUI.Nodes.FolderizeRegexBlack.Text = $RegexB
 
+
 #Add Auto-Tabs
-Add-VaultAppTab -TabName 'Emulators' -Directory (Join-Path $PSScriptRootEsc 'Emulators')
-Add-VaultAppTab -Directory (Join-Path $PSScriptRootEsc 'AddOns')
+
+$LoadedData = [VaultData]::FromManifest('.\VaultAssets\DefaultManifest.json')
+if ($null -ne $LoadedData) {
+Add-VaultAppTab $LoadedData | & { process { $GUI.Nodes.Tabs.AddChild($_) } }
+}
+
 
 #give anything clickable an event
-$GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent, [System.Windows.RoutedEventHandler]({
+$GUI.WPF.AddHandler([Primitives.ButtonBase]::ClickEvent, [System.Windows.RoutedEventHandler]({
             $object = $_
-            if ($object.OriginalSource -is [System.Windows.Controls.Button]) {
+            if ($object.OriginalSource -is [Button]) {
                 switch -CaseSensitive -regex ($object.OriginalSource.Name) {
                     '^MiscOpenButton$' {
                         $path = Resolve-Path $object.OriginalSource.Path
@@ -673,7 +538,7 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                         continue
                     }
                     '^ButtonCueGenStart$' {
-                        $files = Get-FileSystemEntries -File ($GUI.Nodes.CueGen.Text) | Where-Object { [System.IO.Path]::GetExtension($_) -eq '.bin' -or [System.IO.Path]::GetExtension($_) -eq '.raw' }
+                        $files = [FileSystemEntries]::Get(($GUI.Nodes.CueGen.Text), 'File', 'TopDirectoryOnly') | Where-Object { [System.IO.Path]::GetExtension($_) -eq '.bin' -or [System.IO.Path]::GetExtension($_) -eq '.raw' }
                         if ($files) {
                             $cuecontent = New-CueFromFiles $files | ConvertTo-Cue
                             if ($cuecontent) {
@@ -691,6 +556,75 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
                         $path = Join-Path $GUI.Nodes.Backup.Text $filename
                         Compress-7z -root $PSScriptRoot $path '*/VaultManifest.json' -Type Text
                     }
+                    '^Button.File$' {
+                        $Side = $_ -creplace '^Button', '' -creplace 'File$', ''
+                        $objForm = New-Object System.Windows.Forms.OpenFileDialog
+                        $objForm.Filter = 'JSON-Manifest|*.json'
+                        $objForm.InitialDirectory = $PSScriptRootEsc
+                        if ($objForm.ShowDialog() -eq 'OK') {
+                            $GUI.Nodes."Data$Side".Text = [VaultData]::FromManifest($objForm.FileName) | ConvertTo-Json -Depth 8 | Format-Json
+                        }
+                        continue
+                    }
+                    '^Button.Folder$' {
+                        $Side = $_ -creplace '^Button', '' -creplace 'Folder$', ''
+                        $objForm = New-Object CyberOasis.VaultManager.FolderSelectDialog
+                        $objForm.InitialDirectory = $PSScriptRootEsc
+                        if ($objForm.Show() -eq 'OK') {
+                            $GUI.Nodes."Data$Side".Text = [VaultData]::FromDirectory($objForm.FileName) | ConvertTo-Json -Depth 8 | Format-Json
+                        }
+                        continue
+                    }
+                    '^Button.Old$' {
+                        $Side = $_ -creplace '^Button', '' -creplace 'Old$', ''
+                        [VaultData_Old[]]$ConverterData = ((& {
+                                    Add-VaultAppTab_Old -TabName 'Emulators' -Directory (Join-Path $PSScriptRootEsc 'Emulators')
+                                    Add-VaultAppTab_Old -Directory (Join-Path $PSScriptRootEsc 'AddOns') 
+                                } | ConvertTo-Json -Depth 10 | Out-String) -replace ($PSScriptRootEsc -replace '\\', '\\\\'), '.' | ConvertFrom-Json)
+                        $GUI.Nodes."Data$Side".Text = [VaultData]$ConverterData | ConvertTo-Json -Depth 8 | Format-Json
+                        continue
+                    }
+                    '^Button.Merge$' {
+                        $Side = $_ -creplace '^Button', '' -creplace 'Merge$', ''
+                        $MergeDataL = [VaultData]($GUI.Nodes.DataL.Text | ConvertFrom-Json -ErrorAction 'SilentlyContinue')
+                        $MergeDataR = [VaultData]($GUI.Nodes.DataR.Text | ConvertFrom-Json -ErrorAction 'SilentlyContinue')
+                        if ($null -ne $MergeDataL -or $null -ne $MergeDataR) {
+                            if ($Side -eq 'L') {
+                                $MergeDataL.Merge($MergeDataR)
+                                $GUI.Nodes."Data$Side".Text = $MergeDataL | ConvertTo-Json -Depth 8 | Format-Json
+                            }
+                            else {
+                                $MergeDataR.Merge($MergeDataL)
+                                $GUI.Nodes."Data$Side".Text = $MergeDataR | ConvertTo-Json -Depth 8 | Format-Json
+                            }
+                        }
+                    }
+                    '^Button.Verify$' {
+                        $Side = $_ -creplace '^Button', '' -creplace 'Verify$', ''
+                        $VerifyData = [VaultData]($GUI.Nodes."Data$Side".Text | ConvertFrom-Json -ErrorAction 'SilentlyContinue') 
+                        if ($null -eq $VerifyData) {
+                            $GUI.Nodes."$_".Content = 'Verify (Data Invalid)'
+                        }
+                        else {
+                            $GUI.Nodes."$_".Content = 'Verify (Data OK)'
+                        }
+                        continue
+                    }
+                    '^Button.Save$' {
+                        $Side = $_ -creplace '^Button', '' -creplace 'Save$', ''
+                        if ($Side -eq 'L') {
+                            $name = 'left.json'
+                        }
+                        else {
+                            $name = 'right.json'
+                        }
+                        $VerifyData = [VaultData]($GUI.Nodes."Data$Side".Text | ConvertFrom-Json -ErrorAction 'SilentlyContinue') 
+                        if ($null -ne $VerifyData) {
+                            $GUI.Nodes."Data$Side".Text | Out-File $name -Encoding utf8
+                        }
+                        continue
+                    }
+
                     Default { Write-Host "Unhandled Button: $_" }
                 }
             }
@@ -699,6 +633,8 @@ $GUI.WPF.AddHandler([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent,
 $GUI.WPF.AddHandler([System.Windows.Window]::LoadedEvent, [System.Windows.RoutedEventHandler]({
             [void]$GUI.WPF.Activate()
         }))
+
+
 
 #endregion Code behind
 

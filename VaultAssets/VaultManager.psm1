@@ -1,4 +1,5 @@
 using module '.\Cue.psm1'
+using module '.\SpodiUtils.psm1'
 function Get-7zip {
     if ((Test-Path (Join-Path $PSScriptRoot '7z.exe') -PathType Leaf) -and (Test-Path (Join-Path $PSScriptRoot '7z.dll') -PathType Leaf)) {
         return (Join-Path $PSScriptRoot '7z.exe')
@@ -113,88 +114,25 @@ function Compress-7z {
 #endregion
 
 #region file/folder list
-function Get-FileSystemEntries {
-    <#
-    .SYNOPSIS
-    Basically "Get-ChildItem", but slightly faster. Gets paths only.
-    #>
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline)] [string] $Path,
-        [Parameter()] [switch] $File,
-        [Parameter()] [switch] $Directory,
-        [Parameter()] [switch] $Recurse
-    )
-    begin {
-        $prevDir = [System.IO.Directory]::GetCurrentDirectory()
-        [System.IO.Directory]::SetCurrentDirectory((Get-Location))
-        $Queue = [System.Collections.Queue]@()
-    }
-    process {
-        $Queue.Enqueue($Path)
-        while ($Queue.count -gt 0) {
-            try {
-                $Current = $Queue.Dequeue()
-                [System.IO.Directory]::EnumerateDirectories($Current) | & { process {
-                        if (!$File) { Write-Output ($_ + [System.IO.Path]::DirectorySeparatorChar ) }
-                        if ($Recurse) { $Queue.Enqueue($_) }
-                    } }
-                if (!$Directory) { Write-Output ([System.IO.Directory]::EnumerateFiles($Current)) }
-            }
-            catch [System.Management.Automation.RuntimeException] {
-                $catchedError = $_
-                switch ($catchedError.Exception.InnerException.GetType().FullName) {
-                    'System.UnauthorizedAccessException' { Write-Warning $catchedError.Exception.InnerException.Message }
-                    'System.Security.SecurityException' { Write-Warning $catchedError.Exception.InnerException.Message }
-                    default {
-                        Throw $catchedError
-                    }
-                }  
-            }
-        
-        }
-    }
-    end {
-        [System.IO.Directory]::SetCurrentDirectory($prevDir)
-    }
-}
 
-function Get-FolderSubs {
-    <#
-    .SYNOPSIS
-    Basically "Get-ChildItem -Directory -recurse", but slightly faster. Gets paths only.
-    .LINK
-    Get-Files
-    .LINK
-    Get-FileSystemEntries
-    #>
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline)]  [string] $Path
-    )
-    process {
-        Get-FileSystemEntries -Directory $Path | & { process {
-                Write-Host $_
-                Write-Output (Get-FileSystemEntries -Directory $_)
-            } }
-    }
-}
+
+
 #endregion file/folder list
 
 #region File managing
 function Remove-EmptyFoldersSubroutine {
     <#
     .SYNOPSIS
-    Recursely removes all empty folders in a given path.
+    Recursely removes all empty folders in a given path.  Including the path itself, if it results in it being empty.
     #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)] [string] $Path
     )
-    Get-FileSystemEntries $Path -Directory | & { Process {
+    [FileSystemEntries]::Get($Path, 'Directory', 'TopDirectoryOnly') | & { process {
             Remove-EmptyFoldersSubroutine -Path $_
         } }   
-    if ($null -eq (Get-FileSystemEntries $Path | Select-Object -First 1)) {
+    if ($null -eq ([FileSystemEntries]::Get($Path) | Select-Object -First 1)) {
         Write-Host "Removing empty folder at path `"$Path`"."
         Remove-Item -Force -LiteralPath $Path
     }
@@ -202,14 +140,14 @@ function Remove-EmptyFoldersSubroutine {
 function Remove-EmptyFolders {
     <#
     .SYNOPSIS
-    Recursely removes all empty folders in a given path. Including the path itself, if it results in it being empty.
+    Recursely removes all empty folders in a given path.
     #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory, ValueFromPipeline)] [string] $Path
     )
-    Process {
-        Get-FileSystemEntries $Path -Directory | & { Process {
+    process {
+        [FileSystemEntries]::Get($Path, 'Directory', 'TopDirectoryOnly') | & { process {
                 Remove-EmptyFoldersSubroutine -Path $_
             } }
     }
@@ -249,7 +187,7 @@ function Folderize {
     )
 
     Write-Host -NoNewline 'Retrieving file list, this can take a while... '
-    $SourceFiles = Get-FileSystemEntries -File -Recurse $source
+    $SourceFiles = [FileSystemEntries]::Get($source, 'File', 'AllDirectories')
     Write-Host 'Done'
 
     if ($all) {
@@ -303,7 +241,7 @@ function Folderize {
     }
     if (!$FileList) { return }
     
-    $FileList = $FileList | & { Process {
+    $FileList = $FileList | & { process {
             # Remove file extension for the new folder name. Will fail on "nameless" files, like .htaccess
             # We don't want to use Get-Item here, as that reads every file with much more metadata than we need.
             $List = [PSCustomObject]@{
@@ -329,9 +267,9 @@ function Folderize {
                 }
             }
             $List
-        } } | Group-Object ID | & { Process { 
+        } } | Group-Object ID | & { process { 
             $ShortestName = ($_.Group | Sort-Object { $_.CleanedName.Length } | Select-Object -First 1).CleanedName
-            $_.Group | & { Process {
+            $_.Group | & { process {
                     $_.CleanedName = $ShortestName
                     $_
                 } }
@@ -340,7 +278,7 @@ function Folderize {
 
     if ($ESDE) {
        
-        $FileList = $FileList | Group-Object CleanedName | & { Process {
+        $FileList = $FileList | Group-Object CleanedName | & { process {
                 $name = $null
                 if ($_.count -gt 1) {
 
@@ -366,16 +304,16 @@ function Folderize {
                 
                 # Join-Path doesn't have -LiteralPath, so use the .Net version instead...
                 if ($name) {
-                    $_.Group | & { Process { $_.DestFolder = [System.IO.Path]::Combine($destination, $name) } }
+                    $_.Group | & { process { $_.DestFolder = [System.IO.Path]::Combine($destination, $name) } }
                 }
                 else {
-                    $_.Group | & { Process { $_.DestFolder = $destination } }
+                    $_.Group | & { process { $_.DestFolder = $destination } }
                 }
                 $_.Group
             } } 
     }
     else {
-        $Filelist = $Filelist | & { Process {
+        $Filelist = $Filelist | & { process {
                 $_.DestFolder = ([System.IO.Path]::Combine($destination, $_.CleanedName))
                 $_
             } }
@@ -461,7 +399,7 @@ function UnFolderize {
     )
 
     Write-Host -NoNewline 'Retrieving file list, this can take a while... '
-    $SourceFiles = Get-FileSystemEntries -File -Recurse $source
+    $SourceFiles = [FileSystemEntries]::Get($source, 'File', 'AllDirectories')
     Write-Host 'Done'
 
     if ($all) {
@@ -520,14 +458,14 @@ function UnFolderize {
     }
     Write-Progress @ProgressParameters
 
-    foreach ($input in $FileList) {
+    foreach ($File in $FileList) {
         # Remove file extension for the new folder name. Will fail on "nameless" files, like .htaccess
         # We don't want to use Get-Item here, as that reads every file with much more metadata than we need.
         $SourceFile = [PSCustomObject]@{
-            Name       = $input
-            FileName   = [System.IO.Path]::GetFileName($input)
-            BaseName   = [System.IO.Path]::GetFileNameWithoutExtension($input).TrimEnd()
-            Extension  = [System.IO.Path]::GetExtension($input)
+            Name       = $File
+            FileName   = [System.IO.Path]::GetFileName($File)
+            BaseName   = [System.IO.Path]::GetFileNameWithoutExtension($File).TrimEnd()
+            Extension  = [System.IO.Path]::GetExtension($File)
             DestFolder = $destination
         }
 
@@ -593,7 +531,7 @@ function Split-File {
         $prevDir = [System.IO.Directory]::GetCurrentDirectory()
         [System.IO.Directory]::SetCurrentDirectory((Get-Location))
     }
-    Process {
+    process {
         if (Test-Path -LiteralPath $fileOut -PathType Leaf) {
             Write-Error "$fileOut already exists."
             return
@@ -665,7 +603,7 @@ function Merge-File {
             [void]$write.write($gap, 0, $PreGap)
         }
     }
-    Process {
+    process {
         foreach ($file in $filein) {
 
             $read = [System.IO.File]::OpenRead($file)
@@ -705,7 +643,7 @@ function New-CueFromFiles {
         $trackNo = 1
         $cueSheet = [Cue.Sheet]::new()
     }
-    Process {
+    process {
         foreach ($path in $SourceFiles) {
             $inFile = Get-Item $path
             if ($inFile.Length -lt 2352) {
@@ -738,7 +676,7 @@ function New-CueFromFiles {
                 else {
 
                     $DataType = 'AUDIO'
-                    $silence = $buffer | & { Process {
+                    $silence = $buffer | & { process {
                             if ($_ -ne [Byte]0) { $false }
                         } end { $true } } | Select-Object -First 1
                     if ($bytesRead -ne 352800 -or !$silence ) {
@@ -825,7 +763,7 @@ function Split-CueBin {
     Push-Location (Split-Path $FileIn)
     $cue = Get-Content -LiteralPath $fileIn -Raw | ConvertFrom-Cue
     if (!$cue) { Write-Error "`"$fileIn`" isn't a valid cue file!"; return }
-    $allBinary = $cue.Files.FileType | & { Process {
+    $allBinary = $cue.Files.FileType | & { process {
             if ($_ -ne 'BINARY' -and $_ -ne 'MOTOROLA') { $false } 
         } end { $true } } | Select-Object -First 1
     if (!$allBinary) { Write-Error "`"$fileIn`" Includes files that are not flagged as raw binary. Wrong or corrupt cue sheet?"; return }
@@ -837,11 +775,11 @@ function Split-CueBin {
         Songwriter = $cue.Songwriter
     }
 
-    ForEach ($File in $cue.Files) {
+    foreach ($File in $cue.Files) {
         $fileInfo = Get-Item $file.FileName
         if (!$fileInfo) { Write-Error "Could not find `"$(Join-Path (Split-Path $FileIn) $file.FileName)`". Wrong cue sheet or renamed/moved files?"; return }
 
-        For ($i = 0; $i -lt $File.Tracks.count; $i++) { 
+        for ($i = 0; $i -lt $File.Tracks.count; $i++) { 
             $curPos = $File.Tracks[$i].Indexes[0].Offset.TotalBytes
             if (($i + 1) -ge $File.Tracks.count) {
                 $nextPos = $FileInfo.Length  
@@ -866,7 +804,7 @@ function Split-CueBin {
                     PreGap     = $File.Tracks[$i].PreGap
                     PostGap    = $File.Tracks[$i].PostGap
 
-                    Indexes    = & { ForEach ($index in $File.Tracks[$i].Indexes) { 
+                    Indexes    = & { foreach ($index in $File.Tracks[$i].Indexes) { 
                             [Cue.Index]@{
                                 Number = $Index.Number
                                 Offset = $index.Offset - [Cue.Time]::FromBytes($curPos)
@@ -904,7 +842,7 @@ function Merge-CueBin {
     { $destination = '.\' }
     $cue = Get-Content -LiteralPath $fileIn -Raw | ConvertFrom-Cue
     if (!$cue) { Write-Error "`"$fileIn`" isn't a valid cue file!"; return }
-    $allBinary = $cue.Files.FileType | & { Process {
+    $allBinary = $cue.Files.FileType | & { process {
             if ($_ -ne 'BINARY' -and $_ -ne 'MOTOROLA') { $false } 
         } end { $true } } | Select-Object -First 1
     if (!$allBinary) { Write-Error "`"$fileIn`" Can't merge images that includes non-binary files."; return }
@@ -919,12 +857,12 @@ function Merge-CueBin {
             FileName = [System.IO.Path]::GetFileName($newName)
             FileType = $Cue.Files[0].FileType
             Tracks   = & {
-                ForEach ($File in $cue.Files) {
+                foreach ($File in $cue.Files) {
                     $prevFile += $fileInfo.Length
                     $fileInfo = Get-Item (Join-Path (Split-Path $FileIn) $file.FileName)
                     if (!$fileInfo) { Write-Error "Could not find `"$file`". Wrong cue sheet or renamed/moved files?"; return }
 
-                    ForEach ($track in $File.Tracks) {
+                    foreach ($track in $File.Tracks) {
                         [Cue.Track]@{
                             Number     = $track.Number
                             DataType   = $track.DataType
@@ -934,7 +872,7 @@ function Merge-CueBin {
                             ISRC       = $track.ISRC
                             PreGap     = $track.PreGap
                             PostGap    = $track.PostGap
-                            Indexes    = & { ForEach ($index in $track.Indexes) { 
+                            Indexes    = & { foreach ($index in $track.Indexes) { 
                                     [Cue.Index]@{
                                         Number = $Index.Number
                                         Offset = $index.Offset + [Cue.Time]::FromBytes($prevFile)
@@ -973,10 +911,10 @@ function Format-CueGaps {
     $cue = Get-Content -LiteralPath $fileIn -Raw | ConvertFrom-Cue
     if (!$cue) { Write-Error "`"$fileIn`" isn't a valid cue file!"; return }
 
-    ForEach ($File in $cue.Files) {
+    foreach ($File in $cue.Files) {
         $PreGap = $null
 
-        ForEach ($Track in $File.Tracks) {
+        foreach ($Track in $File.Tracks) {
             if (@($_.Indexes).Count -eq 1) {
                 if ($Track.Pregap -gt 0) {
                     $PreGap = $Track.Pregap
@@ -1025,7 +963,7 @@ function Compress-Disc {
     )
     $cue = Get-Content -LiteralPath $fileIn -Raw | ConvertFrom-Cue
     if (!$cue) { Write-Error "`"$fileIn`" isn't a valid cue file!"; return }
-    $cue.Files | & { Process {
+    $cue.Files | & { process {
             $test = ($_.Tracks | Group-Object DataType)
             if ($test.count -eq 1 -and $test.Name -eq 'AUDIO') {
                 [PSCustomObject]@{
@@ -1039,7 +977,7 @@ function Compress-Disc {
                     Type = 'Binary'
                 }
             }
-        } End {
+        } end {
             [PSCustomObject]@{
                 Path = Split-Path $FileIn -Leaf
                 Type = 'Text'
