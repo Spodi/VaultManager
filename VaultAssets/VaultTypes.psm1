@@ -192,6 +192,7 @@ function Get-VaultAppData_Old {
 #endregion Deprecated
 
 enum VaultMergeType {
+    ManifestDefined
     MergeEmpty
     Keep
     Overwrite
@@ -199,6 +200,7 @@ enum VaultMergeType {
 class VaultBase {
     [string] $Name = ''
     [string] $Icon = ''
+    [VaultMergeType] $MergeType = [VaultMergeType]::MergeEmpty
 }
 Update-TypeData -Force -TypeName 'VaultBase' -DefaultKeyPropertySet @('Name')
 class VaultSortable : VaultBase, IComparable {
@@ -223,43 +225,29 @@ class VaultData {
     VaultData([VaultData_Old[]]$Object) {
    
         foreach ($OldTab in ($Object | Group-Object TabName)) {
-            $NewTab = [VaultTab]@{
-                Name      = $OldTab.Name
-                Color     = $OldTab.Group.Color | Select-Object -First 1
-                SortIndex = $OldTab.Group.TabIndex | Select-Object -First 1
-                Icon      = $OldTab.Group.TabIcon | Select-Object -First 1
-            }
-
+            $NewTab = [VaultTab]::new()
+            $NewTab.Name = $OldTab.Name
+            $NewTab.Color = $OldTab.Group.Color | Select-Object -First 1
+            $NewTab.SortIndex = $OldTab.Group.TabIndex | Select-Object -First 1
+            $NewTab.Icon = $OldTab.Group.TabIcon | Select-Object -First 1
             $this.Tabs.Add($NewTab)
             foreach ($OldCategory in (($OldTab.Group | Group-Object Category))) {
-                $NewCategory = [VaultCategory]@{
-                    Name      = $OldCategory.Name
-                    Icon      = $OldCategory.Group.CategoryIcon | Select-Object -First 1
-                    SortIndex = $OldCategory.Group.CategoryIndex | Select-Object -First 1       
-                }
-                if ($null -eq $NewTab.Categories) {
-                    $NewTab.Categories = [List[VaultCategory]]::new()
-                }
+                $NewCategory = [VaultCategory]::new()
+                $NewCategory.Name = $OldCategory.Name
+                $NewCategory.Icon = $OldCategory.Group.CategoryIcon | Select-Object -First 1
+                $NewCategory.SortIndex = $OldCategory.Group.CategoryIndex | Select-Object -First 1       
                 $NewTab.Categories.Add($NewCategory)
                 foreach ($OldApp in ($OldCategory.Group)) {
-                    $NewApp = [VaultApp]@{
-                        Name      = $OldApp.Name
-                        Icon      = $OldApp.Icon -replace ($OldApp.Folder -replace '\\', '\\'), '.\'
-                        BasePath  = $OldApp.Folder
-                        SortIndex = $OldApp.SortIndex
-                    }
-                    if ($null -eq $NewCategory.Apps) {
-                        $NewCategory.Apps = [List[VaultApp]]::new()
-                    }
+                    $NewApp = [VaultApp]::new()
+                    $NewApp.Name = $OldApp.Name
+                    $NewApp.Icon = $OldApp.Icon -replace ($OldApp.Folder -replace '\\', '\\'), '.\'
+                    $NewApp.BasePath = $OldApp.Folder
+                    $NewApp.SortIndex = $OldApp.SortIndex    
                     $NewCategory.Apps.Add($NewApp)
                     foreach ($OldButton in ($OldApp.Buttons)) {
-                        $NewButton = [VaultAppButton]@{
-                            Name = $OldButton.Name
-                            Path = $OldButton.Path -replace ($OldApp.Folder -replace '\\', '\\'), '.\'
-                        }
-                        if ($null -eq $NewApp.Buttons) {
-                            $NewApp.Buttons = [List[VaultAppButton]]::new(3)
-                        }
+                        $NewButton = [VaultAppButton]::new()
+                        $NewButton.Name = $OldButton.Name
+                        $NewButton.Path = $OldButton.Path -replace ($OldApp.Folder -replace '\\', '\\'), '.\'
                         $NewApp.Buttons.Add($NewButton)
                     }
                 }
@@ -305,19 +293,20 @@ class VaultData {
 
 
     [void] Merge([VaultData] $other) {
-        $this.Merge($other, 0)
+        $this.Merge($other, [VaultMergeType]::ManifestDefined, [VaultMergeType]::ManifestDefined, [VaultMergeType]::ManifestDefined, [VaultMergeType]::ManifestDefined)
     }
 
-    [void] Merge([VaultData] $other, [VaultMergeType] $MergeType) {
+    [void] Merge([VaultData] $other, [VaultMergeType] $MergeTypeTabs, [VaultMergeType] $MergeTypeCategories, [VaultMergeType] $MergeTypeApps, [VaultMergeType] $MergeTypeButtons) {
         foreach ($Tab in $other.Tabs) {
             if ($Tab.Name -in $this.Tabs.Name) {
-                ($this.Tabs | Where-Object Name -EQ $Tab.Name).Merge($Tab, $MergeType)
+                ($this.Tabs | Where-Object Name -EQ $Tab.Name).Merge($Tab, $MergeTypeTabs, $MergeTypeCategories, $MergeTypeApps, $MergeTypeButtons)    
             }
             else {
                 $this.Tabs.Add($Tab)
             }
         }
     }
+
 
     [void] Sort () {
         $this.Tabs.Sort()
@@ -327,7 +316,6 @@ class VaultData {
     }
 }
 class VaultTab : VaultSortable {
-    [string] $Path = ''
     [string] $Color = ''
     [List[VaultCategory]] $Categories = [List[VaultCategory]]::new(1)
 
@@ -363,13 +351,22 @@ class VaultTab : VaultSortable {
 
 
     [void] Merge([VaultTab] $other) {
-        $this.Merge($other, 0)
+        $this.Merge($other, $other.MergeType)
     }
-
-    [void] Merge([VaultTab] $other, [VaultMergeType] $MergeType) {
+    [void] Merge([VaultTab] $other, [VaultMergeType] $MergeTypeTabs) {
+        $this.Merge($other, $MergeTypeTabs, [VaultMergeType]::ManifestDefined, [VaultMergeType]::ManifestDefined, [VaultMergeType]::ManifestDefined)
+    }
+    
+    [void] Merge([VaultTab] $other, [VaultMergeType] $MergeTypeTabs, [VaultMergeType] $MergeTypeCategories, [VaultMergeType] $MergeTypeApps, [VaultMergeType] $MergeTypeButtons) {
+        if ($MergeTypeTabs -eq [VaultMergeType]::ManifestDefined) {
+            $MergeTypeTabs = $other.MergeType
+            if ($MergeTypeTabs -eq [VaultMergeType]::ManifestDefined) {
+                $MergeTypeTabs = [VaultMergeType]::MergeEmpty
+            } 
+        }
         foreach ($Category in $other.Categories) {
             if ($Category.Name -in $this.Categories.Name) {
-                ($this.Categories | Where-Object Name -EQ $Category.Name).Merge($Category)
+                ($this.Categories | Where-Object Name -EQ $Category.Name).Merge($Category, $MergeTypeCategories, $MergeTypeApps, $MergeTypeButtons)
             }
             else {
                 $this.Categories.Add($Category)
@@ -377,21 +374,21 @@ class VaultTab : VaultSortable {
         }
         foreach ($Property in (($this | Get-Member -MemberType Properties).Name)) {
             if ($Property -ne 'Categories') {
-                switch ($MergeType) {
-                    'MergeEmpty' {
+                switch ($MergeTypeTabs) {
+                    ([VaultMergeType]::MergeEmpty) {
                         if (!$this.$Property -and $other.$Property) { $this.$Property = $other.$Property }
                         break
                     }
-                    'Overwrite' {
+                    ([VaultMergeType]::Overwrite) {
                         $this.$Property = $other.$Property
                         break
                     }
-                    'Keep' {
+                    ([VaultMergeType]::Keep) {
                         # Keep own properties
                         break
                     }
                     Default {
-                        throw "Unknown MergeType `"$_`""
+                        throw "[VaultTab] Unknown MergeType `"$_`""
                     }
                 }
             }
@@ -441,13 +438,23 @@ class VaultCategory : VaultSortable {
 
 
     [void] Merge([VaultCategory] $other) {
-        $this.Merge($other, 0)
+        $this.Merge($other, $other.MergeType)
     }
 
-    [void] Merge([VaultCategory] $other, [VaultMergeType] $MergeType) {
+    [void] Merge([VaultCategory] $other, [VaultMergeType] $MergeTypeCategories) {
+        $this.Merge($other, $MergeTypeCategories, [VaultMergeType]::ManifestDefined, [VaultMergeType]::ManifestDefined)
+    }
+    
+    [void] Merge([VaultCategory] $other, [VaultMergeType] $MergeTypeCategories, [VaultMergeType] $MergeTypeApps, [VaultMergeType] $MergeTypeButtons) {
+        if ($MergeTypeCategories -eq [VaultMergeType]::ManifestDefined) {
+            $MergeTypeCategories = $other.MergeType
+            if ($MergeTypeCategories -eq [VaultMergeType]::ManifestDefined) {
+                $MergeTypeCategories = [VaultMergeType]::MergeEmpty
+            }
+        }
         foreach ($App in $other.Apps) {
             if ($App.Name -in $this.Apps.Name) {
-                ($this.Apps | Where-Object Name -EQ $App.Name).Merge($App)
+                ($this.Apps | Where-Object Name -EQ $App.Name).Merge($App, $MergeTypeApps, $MergeTypeButtons)
             }
             else {
                 $this.Apps.Add($App)
@@ -455,21 +462,21 @@ class VaultCategory : VaultSortable {
         }
         foreach ($Property in (($this | Get-Member -MemberType Properties).Name)) {
             if ($Property -ne 'Apps') {
-                switch ($MergeType) {
-                    'MergeEmpty' {
+                switch ($MergeTypeCategories) {
+                    ([VaultMergeType]::MergeEmpty) {
                         if (!$this.$Property -and $other.$Property) { $this.$Property = $other.$Property }
                         break
                     }
-                    'Overwrite' {
+                    ([VaultMergeType]::Overwrite) {
                         $this.$Property = $other.$Property
                         break
                     }
-                    'Keep' {
+                    ([VaultMergeType]::Keep) {
                         # Keep own properties
                         break
                     }
                     Default {
-                        throw "Unknown MergeType `"$_`""
+                        throw "[VaultCategory] Unknown MergeType `"$_`""
                     }
                 }
             }
@@ -507,20 +514,30 @@ class VaultApp : VaultSortable {
         }
         $Data = [VaultApp]::new()
         $Data.Name = Split-Path $Path -Leaf
-
+        $Data.BasePath = $Path
         return $Data
     }
 
 
 
     [void] Merge([VaultApp] $other) {
-        $this.Merge($other, 0)
+        $this.Merge($other, $other.MergeType)
     }
 
-    [void] Merge([VaultApp] $other, [VaultMergeType] $MergeType) {
+    [void] Merge([VaultApp] $other, [VaultMergeType] $MergeTypeApps) {
+        $this.Merge($other, $MergeTypeApps, [VaultMergeType]::ManifestDefined)
+    }
+    
+    [void] Merge([VaultApp] $other, [VaultMergeType] $MergeTypeApps, [VaultMergeType] $MergeTypeButtons) {
+        if ($MergeTypeApps -eq [VaultMergeType]::ManifestDefined) {
+            $MergeTypeApps = $other.MergeType
+            if ($MergeTypeApps -eq [VaultMergeType]::ManifestDefined) {
+                $MergeTypeApps = [VaultMergeType]::MergeEmpty
+            }
+        }
         foreach ($Button in $other.Buttons) {
             if ($Button.Name -in $this.Buttons.Name) {
-                ($this.Buttons | Where-Object Name -EQ $Button.Name).Merge($Button)
+                ($this.Buttons | Where-Object Name -EQ $Button.Name).Merge($Button, $MergeTypeButtons)
             }
             else {
                 $this.Buttons.Add($Button)
@@ -528,21 +545,21 @@ class VaultApp : VaultSortable {
         }
         foreach ($Property in (($this | Get-Member -MemberType Properties).Name)) {
             if ($Property -ne 'Buttons') {
-                switch ($MergeType) {
-                    'MergeEmpty' {
+                switch ($MergeTypeApps) {
+                    ([VaultMergeType]::MergeEmpty) {
                         if (!$this.$Property -and $other.$Property) { $this.$Property = $other.$Property }
                         break
                     }
-                    'Overwrite' {
+                    ([VaultMergeType]::Overwrite) {
                         $this.$Property = $other.$Property
                         break
                     }
-                    'Keep' {
+                    ([VaultMergeType]::Keep) {
                         # Keep own properties
                         break
                     }
                     Default {
-                        throw "Unknown MergeType `"$_`""
+                        throw "[VaultApp] Unknown MergeType `"$_`""
                     }
                 }
             }
@@ -562,32 +579,39 @@ class VaultAppButton : IComparable {
     [string] $Name = ''
     [string] $Path = ''
     [SByte]  $SortIndex = 0
+    [VaultMergeType] $MergeType = [VaultMergeType]::MergeEmpty
 
     [int] CompareTo([object]$other) {
         return $this.SortIndex.CompareTo($other.SortIndex)
     }
 
     [void] Merge([VaultAppButton] $other) {
-        $this.Merge($other, 0)
+        $this.Merge($other, $other.MergeType)
     }
 
-    [void] Merge([VaultAppButton] $other, [VaultMergeType] $MergeType) {
+    [void] Merge([VaultAppButton] $other, [VaultMergeType] $MergeTypeButtons) {
+        if ($MergeTypeButtons -eq [VaultMergeType]::ManifestDefined) {
+            $MergeTypeButtons = $other.MergeType
+            if ($MergeTypeButtons -eq [VaultMergeType]::ManifestDefined) {
+                $MergeTypeButtons = [VaultMergeType]::MergeEmpty
+            }
+        }
         foreach ($Property in (($this | Get-Member -MemberType Properties).Name)) {
-            switch ($MergeType) {
-                'MergeEmpty' {
+            switch ($MergeTypeButtons) {
+                ([VaultMergeType]::MergeEmpty) {
                     if (!$this.$Property -and $other.$Property) { $this.$Property = $other.$Property }
                     break
                 }
-                'Overwrite' {
+                ([VaultMergeType]::Overwrite) {
                     $this.$Property = $other.$Property
                     break
                 }
-                'Keep' {
+                ([VaultMergeType]::Keep) {
                     # Keep own properties
                     break
                 }
                 Default {
-                    throw "Unknown MergeType `"$_`""
+                    throw "[VaultAppButton] Unknown MergeType `"$_`""
                 }
             }
         }

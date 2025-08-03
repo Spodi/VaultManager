@@ -154,9 +154,9 @@ $GUI.Nodes = $XAML.SelectNodes('//*[@x:Name]', $GUI.NsMgr) | ForEach-Object {
 function New-WPFTab {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)] [string]    $Name,
-        [Parameter(ValueFromPipelineByPropertyName)] [string]    $color,
-        [Parameter(ValueFromPipelineByPropertyName)] [string]    $Icon
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]  [string]    $Name,
+        [Parameter(ValueFromPipelineByPropertyName)]                                [string]    $color,
+        [Parameter(ValueFromPipelineByPropertyName)]                                [string]    $Icon
     ) 
     process {
         $HeaderStack = [StackPanel]@{
@@ -205,8 +205,8 @@ function New-WPFTab {
 function New-WPFCategory {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)] [string]    $Name,
-        [Parameter(ValueFromPipelineByPropertyName)] [string] $Icon
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]  [string]    $Name,
+        [Parameter(ValueFromPipelineByPropertyName)]                                [string]    $Icon
     )  
     process {
         $CategoryBorder = [Border]@{
@@ -251,10 +251,10 @@ function New-WPFCategory {
 function New-WPFCard {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory, ValueFromPipelineByPropertyName)] [string]        $Name,
-        [Parameter(ValueFromPipelineByPropertyName)] [List[VaultAppButton]]     $Buttons,
-        [Parameter(ValueFromPipelineByPropertyName)] [string]                   $Icon,
-        [Parameter(ValueFromPipelineByPropertyName)] [string]                   $BasePath
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)] [string]                $Name,
+        [Parameter(ValueFromPipelineByPropertyName)]            [List[VaultAppButton]]  $Buttons,
+        [Parameter(ValueFromPipelineByPropertyName)]            [string]                $Icon,
+        [Parameter(ValueFromPipelineByPropertyName)]            [string]                $BasePath
     )
     process {
         # in CategoryInnerPanel
@@ -424,7 +424,7 @@ $GUI.Nodes.FolderizeRegexBlack.Text = $RegexB
 
 $LoadedData = [VaultData]::FromManifest('.\VaultAssets\DefaultManifest.json')
 if ($null -ne $LoadedData) {
-Add-VaultAppTab $LoadedData | & { process { $GUI.Nodes.Tabs.AddChild($_) } }
+    Add-VaultAppTab $LoadedData | & { process { $GUI.Nodes.Tabs.AddChild($_) } }
 }
 
 
@@ -590,12 +590,23 @@ $GUI.WPF.AddHandler([Primitives.ButtonBase]::ClickEvent, [System.Windows.RoutedE
                         $MergeDataR = [VaultData]($GUI.Nodes.DataR.Text | ConvertFrom-Json -ErrorAction 'SilentlyContinue')
                         if ($null -ne $MergeDataL -or $null -ne $MergeDataR) {
                             if ($Side -eq 'L') {
-                                $MergeDataL.Merge($MergeDataR)
-                                $GUI.Nodes."Data$Side".Text = $MergeDataL | ConvertTo-Json -Depth 8 | Format-Json
+                                try {
+                                    $MergeDataL.Merge($MergeDataR)
+                                    $GUI.Nodes."Data$Side".Text = $MergeDataL | ConvertTo-Json -Depth 8 | Format-Json
+                                }
+                                catch {
+                                    Write-Error $_
+                                }
                             }
                             else {
-                                $MergeDataR.Merge($MergeDataL)
-                                $GUI.Nodes."Data$Side".Text = $MergeDataR | ConvertTo-Json -Depth 8 | Format-Json
+                                try {
+                                    $MergeDataR.Merge($MergeDataL)
+                                    $GUI.Nodes."Data$Side".Text = $MergeDataR | ConvertTo-Json -Depth 8 | Format-Json
+                                }
+                                catch {
+                                    Write-Error $_
+                                }
+
                             }
                         }
                     }
