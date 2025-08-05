@@ -427,7 +427,13 @@ $GUI.Nodes.FolderizeRegexBlack.Text = $RegexB
 #Add Auto-Tabs
 
 $LoadedData = [VaultData]::FromManifest('.\VaultAssets\DefaultManifest.json')
+#load Add-Ons
+Get-ChildItem '.\AddOns' -Filter '*.json' | & { process {   
+        $LoadedData.Merge([VaultData]::FromManifest($_.FullName))
+    } }
+
 if ($null -ne $LoadedData) {
+    $LoadedData.Sort()
     Add-VaultAppTab $LoadedData | & { process { $GUI.Nodes.Tabs.AddChild($_) } }
 }
 
@@ -654,5 +660,6 @@ $GUI.WPF.AddHandler([System.Windows.Window]::LoadedEvent, [System.Windows.Routed
 #endregion Code behind
 
 #[void][WPIA.ConsoleUtils]::ShowWindow($hWnd, $ConsoleMode.MinimizeNoActivate) #will only minimize windows terminal with all its tabs -.-
+#[System.GC]::Collect()
 [void]$GUI.WPF.ShowDialog() #show window - main thread is blocked until closed
 Pop-Location
