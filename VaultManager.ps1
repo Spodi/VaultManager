@@ -164,12 +164,14 @@ function New-WPFTab {
         }
 
         if ($Icon) {
-            $TabIcon = [Image]@{
-                Height = '16'
-                Source = [System.Windows.Media.Imaging.BitmapFrame]::Create($Icon)
-                Margin = '-6,0,6,0'
+            if (Test-Path -PathType Leaf $Icon) {
+                $TabIcon = [Image]@{
+                    Height = '16'
+                    Source = [System.Windows.Media.Imaging.BitmapFrame]::Create($Icon)
+                    Margin = '-6,0,6,0'
+                }
+                $HeaderStack.AddChild($TabIcon)
             }
-            $HeaderStack.AddChild($TabIcon)
         }
         $TabHeader = [TextBlock]@{
             Text = $Name
@@ -220,9 +222,11 @@ function New-WPFCategory {
             Orientation = 'Horizontal'
         }
         if ($Icon) {
-            $CategoryIcon = [Image]@{
-                Height = '32'
-                Source = [System.Windows.Media.Imaging.BitmapFrame]::Create($Icon)
+            if (Test-Path -PathType Leaf $Icon) {
+                $CategoryIcon = [Image]@{
+                    Height = '32'
+                    Source = [System.Windows.Media.Imaging.BitmapFrame]::Create($Icon)
+                }
             }
         }
         $CategoryLabel = [Label]@{
@@ -289,14 +293,13 @@ function New-WPFCard {
         }
         foreach ($button in $Buttons) {
             $ButtonPath = Join-Path $BasePath ($Button.path -replace '^\.\\', '')
-            if ((Test-Path -LiteralPath $ButtonPath)) {
-                $AppButtonPanel.AddChild((& { [Button]@{
-                                Style   = $GUI.WPF.FindResource('MiscOpenButton')
-                                Name    = 'MiscOpenButton'  
-                                Content = $Button.Name
-                                Tooltip = $ButtonPath.tostring()
-                            } } | Add-Member -PassThru 'Path' $ButtonPath )) #feels like this shoudn't be possible. but it is!
-            }
+            $AppButtonPanel.AddChild((& { [Button]@{
+                            Style   = $GUI.WPF.FindResource('MiscOpenButton')
+                            Name    = 'MiscOpenButton'  
+                            Content = $Button.Name
+                            Tooltip = $ButtonPath.tostring()
+                        } } | Add-Member -PassThru 'Path' $ButtonPath )) #feels like this shoudn't be possible. but it is!
+            
         }
         $AppPanel.AddChild($AppLabelPanel)
         if ($AppIcon) { $AppLabelPanel.AddChild($AppIcon) }
@@ -358,6 +361,7 @@ function Add-VaultAppTab {
     param(
         [Parameter(Mandatory)]  [VaultData]$Data
     )
+    $Data.Cleanup()
     foreach ($TabData in $Data.Tabs) {
         $WPFTab = $TabData | New-WPFTab
         #$TabData | out-Host

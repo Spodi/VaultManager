@@ -214,7 +214,7 @@
                                 </WrapPanel>
                                 <Expander Header="Data Editor" IsExpanded="True">
                                     <StackPanel>
-                                        <TextBox x:Name="DataL" AcceptsReturn="True" AcceptsTab="True" MinLines="5" MaxLines="25" HorizontalScrollBarVisibility="Auto" />
+                                        <TextBox x:Name="DataL" AcceptsReturn="True" AcceptsTab="True" MinLines="5" MaxLines="24" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" />
                                         <Button x:Name="ButtonLVerify" Content="Verify" Padding="2,1,2,1"/>
                                     </StackPanel>
                                 </Expander>
@@ -231,7 +231,7 @@
                                 </WrapPanel>
                                 <Expander Header="Data Editor" IsExpanded="True">
                                     <StackPanel>
-                                        <TextBox x:Name="DataR" AcceptsReturn="True" AcceptsTab="True" MinLines="5" MaxLines="25" HorizontalScrollBarVisibility="Auto"/>
+                                        <TextBox x:Name="DataR" AcceptsReturn="True" AcceptsTab="True" MinLines="5" MaxLines="24" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" />
                                         <Button x:Name="ButtonRVerify" Content="Verify" Padding="2,1,2,1"/>
                                     </StackPanel>
                                 </Expander>

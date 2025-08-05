@@ -314,6 +314,15 @@ class VaultData {
             $Tab.Sort() 
         }
     }
+
+    [void] Cleanup () {
+        foreach ($Tab in $this.Tabs.ToArray()) {
+            $Tab.Cleanup()
+            if ($Tab.Categories.Count -lt 1) {
+                $this.Tabs.Remove($Tab)
+            }
+        }
+    }
 }
 class VaultTab : VaultSortable {
     [string] $Color = ''
@@ -394,11 +403,21 @@ class VaultTab : VaultSortable {
             }
         }
     }
+    
 
     [void] Sort () {
         $this.Categories.Sort()
         foreach ($Category in $this.Categories) {
             $Category.Sort() 
+        }
+    }
+
+    [void] Cleanup () {
+        foreach ($Category in $this.Categories.ToArray()) {
+            $Category.Cleanup()
+            if ($Category.Apps.Count -lt 1) {
+                $this.Categories.Remove($Category)
+            }
         }
     }
 }
@@ -489,9 +508,18 @@ class VaultCategory : VaultSortable {
             $App.Sort() 
         }
     }
+
+    [void] Cleanup () {
+        foreach ($App in $this.Apps.ToArray()) {
+            $App.Cleanup()
+            if ($App.Buttons.Count -lt 1) {
+                $this.Apps.Remove($App)
+            }
+        }
+    }
 }
 class VaultApp : VaultSortable {
-    [string] $BasePath = ''
+    [string] $BasePath = '.\'
     [List[VaultAppButton]]  $Buttons = [List[VaultAppButton]]::new(3)
 
     VaultApp() {}
@@ -515,6 +543,7 @@ class VaultApp : VaultSortable {
         $Data = [VaultApp]::new()
         $Data.Name = Split-Path $Path -Leaf
         $Data.BasePath = $Path
+        $Data.Buttons.Add([VaultAppButton]::new())
         return $Data
     }
 
@@ -570,7 +599,14 @@ class VaultApp : VaultSortable {
         $this.Buttons.Sort()
     }
 
-
+    [void] Cleanup () {
+        foreach ($Button in $this.Buttons.ToArray()) {
+            $ButtonPath = Join-Path $this.BasePath ($Button.path -replace '^\.\\', '')
+            if (!(Test-Path -LiteralPath $ButtonPath) -or $Button.path -eq '') {
+                $this.Buttons.Remove($Button)
+            }
+        }
+    }
 }
 
 #Update-TypeData  -Force -TypeName 'VaultApp' -MemberType AliasProperty -MemberName 'Folder' -Value 'BasePath'
