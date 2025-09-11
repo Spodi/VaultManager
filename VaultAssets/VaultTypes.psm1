@@ -244,14 +244,14 @@ class VaultData {
                 foreach ($OldApp in ($OldCategory.Group)) {
                     $NewApp = [VaultApp]::new()
                     $NewApp.Name = $OldApp.Name
-                    $NewApp.Icon = $OldApp.Icon -replace ($OldApp.Folder -replace '\\', '\\'), '.\'
+                    $NewApp.Icon = $OldApp.Icon -replace ($OldApp.Folder -replace '(\\|\^|\$|\.|\||\?|\*|\+|\(|\)|\[\{)', '\$1'), '.\'
                     $NewApp.BasePath = $OldApp.Folder
                     $NewApp.SortIndex = $OldApp.SortIndex    
                     $NewCategory.Apps.Add($NewApp)
                     foreach ($OldButton in ($OldApp.Buttons)) {
                         $NewButton = [VaultAppButton]::new()
                         $NewButton.Name = $OldButton.Name
-                        $NewButton.Path = $OldButton.Path -replace ($OldApp.Folder -replace '\\', '\\'), '.\'
+                        $NewButton.Path = $OldButton.Path -replace ($OldApp.Folder -replace '(\\|\^|\$|\.|\||\?|\*|\+|\(|\)|\[\{)', '\$1'), '.\'
                         $NewApp.Buttons.Add($NewButton)
                     }
                 }

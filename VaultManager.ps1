@@ -590,7 +590,7 @@ $GUI.WPF.AddHandler([Primitives.ButtonBase]::ClickEvent, [System.Windows.RoutedE
                         [VaultData_Old[]]$ConverterData = ((& {
                                     Add-VaultAppTab_Old -TabName 'Emulators' -Directory (Join-Path $PSScriptRootEsc 'Emulators')
                                     Add-VaultAppTab_Old -Directory (Join-Path $PSScriptRootEsc 'AddOns') 
-                                } | ConvertTo-Json -Depth 10 | Out-String) -replace ($PSScriptRootEsc -replace '\\', '\\\\'), '.' | ConvertFrom-Json)
+                                } | ConvertTo-Json -Depth 10 | Out-String) -replace ($PSScriptRootEsc -replace '(\\|\^|\$|\.|\||\?|\*|\+|\(|\)|\[\{)', '\$1'), '.' | ConvertFrom-Json)
                         $GUI.Nodes."Data$Side".Text = [VaultData]$ConverterData | ConvertTo-Json -Depth 8 | Format-Json
                         continue
                     }
