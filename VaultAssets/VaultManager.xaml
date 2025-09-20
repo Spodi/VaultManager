@@ -7,7 +7,6 @@
 
     <Window.Resources>
         <ResourceDictionary>
-
             <Converter:ValueConverterGroup x:Key="ValueConverterGroup" />
             <Converter:InverseBooleanConverter x:Key="InverseBooleanConverter" />
             <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
@@ -57,9 +56,7 @@
             <Style x:Key="CardInnerBorder" TargetType="{x:Type Border}">
                 <Setter Property="BorderThickness" Value="1" />
             </Style>
-            <Style x:Key="CardButtonPanel" TargetType="{x:Type WrapPanel}">
-
-            </Style>
+            <Style x:Key="CardButtonPanel" TargetType="{x:Type WrapPanel}" />
             <Style x:Key="MiscOpenButton" TargetType="{x:Type Button}" BasedOn="{StaticResource Corners}">
                 <Setter Property="MinWidth" Value="50" />
                 <Setter Property="Margin" Value="1,0,1,0" />
@@ -71,40 +68,40 @@
                         <ControlTemplate TargetType="TabItem">
                             <Border Name="Border" BorderThickness="1,1,1,0">
                                 <ContentPresenter x:Name="ContentSite"
-                                        VerticalAlignment="Center"
-                                        HorizontalAlignment="Center"
-                                        ContentSource="Header"
-                                        Margin="10,2"/>
+                                    VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
+                                    ContentSource="Header"
+                                    Margin="10,2" />
                             </Border>
                             <ControlTemplate.Triggers>
                                 <MultiTrigger>
                                     <MultiTrigger.Conditions>
-                                        <Condition Property="IsSelected" Value="False"/>
-                                        <Condition Property="IsMouseOver" Value="True"/>
+                                        <Condition Property="IsSelected" Value="False" />
+                                        <Condition Property="IsMouseOver" Value="True" />
                                     </MultiTrigger.Conditions>
                                     <Setter TargetName="Border" Property="Margin" Value="-2,-1,1,0" />
                                     <Setter TargetName="Border" Property="Background" Value="{DynamicResource TabItemBackground2}" />
                                 </MultiTrigger>
                                 <MultiTrigger>
                                     <MultiTrigger.Conditions>
-                                        <Condition Property="IsSelected" Value="False"/>
-                                        <Condition Property="IsMouseOver" Value="False"/>
+                                        <Condition Property="IsSelected" Value="False" />
+                                        <Condition Property="IsMouseOver" Value="False" />
                                     </MultiTrigger.Conditions>
                                     <Setter TargetName="Border" Property="Margin" Value="-2,0,1,0" />
                                     <Setter TargetName="Border" Property="Background" Value="{DynamicResource TabItemBackground1}" />
                                 </MultiTrigger>
                                 <MultiTrigger>
                                     <MultiTrigger.Conditions>
-                                        <Condition Property="IsSelected" Value="True"/>
-                                        <Condition Property="IsMouseOver" Value="True"/>
+                                        <Condition Property="IsSelected" Value="True" />
+                                        <Condition Property="IsMouseOver" Value="True" />
                                     </MultiTrigger.Conditions>
                                     <Setter TargetName="Border" Property="Margin" Value="-2,-2,1,0" />
                                     <Setter TargetName="Border" Property="Background" Value="{DynamicResource TabItemBackground3}" />
                                 </MultiTrigger>
                                 <MultiTrigger>
                                     <MultiTrigger.Conditions>
-                                        <Condition Property="IsSelected" Value="True"/>
-                                        <Condition Property="IsMouseOver" Value="False"/>
+                                        <Condition Property="IsSelected" Value="True" />
+                                        <Condition Property="IsMouseOver" Value="False" />
                                     </MultiTrigger.Conditions>
                                     <Setter TargetName="Border" Property="Margin" Value="-2,-2,1,0 " />
                                     <Setter TargetName="Border" Property="Background" Value="{DynamicResource TabItemBackground3}" />
@@ -187,10 +184,10 @@
             <ImageBrush Stretch="UniformToFill" ImageSource="/bg.png" Opacity="0.65" />
         </Grid.Background>
         <TabControl x:Name="Tabs" Background="#CC141414">
-            <TabItem  x:Name="DevTab" Foreground="Red">
+            <TabItem x:Name="DevTab" Foreground="Red">
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal">
-                        <Image Source="/VaultAssets/Icons/dev.png" Height="16" Margin="-6,0,6,0"/>
+                        <Image Source="/VaultAssets/Icons/dev.png" Height="16" Margin="-6,0,6,0" />
                         <TextBlock>Dev</TextBlock>
                     </StackPanel>
                 </TabItem.Header>
@@ -205,7 +202,7 @@
 
                             <StackPanel>
                                 <Label Content="Left Data" Margin="-2,0,0,0" Background="{DynamicResource HeaderLabelBackground}" />
-                                <WrapPanel Orientation="Horizontal" >
+                                <WrapPanel Orientation="Horizontal">
                                     <Button x:Name="ButtonLFile" Content="from file" Padding="2,1,2,1" Margin="2,0,0,2" />
                                     <Button x:Name="ButtonLFolder" Content="from folder" Padding="2,1,2,1" Margin="2,0,0,2" />
                                     <Button x:Name="ButtonLOld" Content="from old structure (with Manifests)" Padding="2,1,2,1" Margin="2,0,0,2" />
@@ -215,24 +212,24 @@
                                 <Expander Header="Data Editor" IsExpanded="True">
                                     <StackPanel>
                                         <TextBox x:Name="DataL" AcceptsReturn="True" AcceptsTab="True" MinLines="5" MaxLines="24" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" />
-                                        <Button x:Name="ButtonLVerify" Content="Verify" Padding="2,1,2,1"/>
+                                        <Button x:Name="ButtonLVerify" Content="Verify" Padding="2,1,2,1" />
                                     </StackPanel>
                                 </Expander>
                             </StackPanel>
                             <StackPanel Grid.Column="1">
                                 <Label Content="Right Data" Margin="0,0,-2,0" Background="{DynamicResource HeaderLabelBackground}" />
-                                <WrapPanel Orientation="Horizontal" >
-                                    <Button x:Name="ButtonRFile" Content="from file" Margin="2,0,0,2" Padding="2,1,2,1"/>
-                                    <Button x:Name="ButtonRFolder" Content="from folder" Margin="2,0,0,2" Padding="2,1,2,1"/>
+                                <WrapPanel Orientation="Horizontal">
+                                    <Button x:Name="ButtonRFile" Content="from file" Margin="2,0,0,2" Padding="2,1,2,1" />
+                                    <Button x:Name="ButtonRFolder" Content="from folder" Margin="2,0,0,2" Padding="2,1,2,1" />
                                     <Button x:Name="ButtonROld" Content="from old structure (with Manifests)" Padding="2,1,2,1" Margin="2,0,0,2" />
-                                    <Button x:Name="ButtonRMerge" Content="Merge left into right" Margin="2,0,0,2" Padding="2,1,2,1"/>
-                                    <Button x:Name="ButtonRSave" Content="Save (right.json)" Margin="2,0,0,2" Padding="2,1,2,1"/>
+                                    <Button x:Name="ButtonRMerge" Content="Merge left into right" Margin="2,0,0,2" Padding="2,1,2,1" />
+                                    <Button x:Name="ButtonRSave" Content="Save (right.json)" Margin="2,0,0,2" Padding="2,1,2,1" />
 
                                 </WrapPanel>
                                 <Expander Header="Data Editor" IsExpanded="True">
                                     <StackPanel>
                                         <TextBox x:Name="DataR" AcceptsReturn="True" AcceptsTab="True" MinLines="5" MaxLines="24" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" />
-                                        <Button x:Name="ButtonRVerify" Content="Verify" Padding="2,1,2,1"/>
+                                        <Button x:Name="ButtonRVerify" Content="Verify" Padding="2,1,2,1" />
                                     </StackPanel>
                                 </Expander>
                             </StackPanel>
@@ -259,10 +256,10 @@
                 </ScrollViewer>
             </TabItem>
 
-            <TabItem  Foreground="DarkGray">
+            <TabItem Foreground="DarkGray">
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal">
-                        <Image Source="/VaultAssets/Icons/integrated.png" Height="16" Margin="-6,0,6,0"/>
+                        <Image Source="/VaultAssets/Icons/integrated.png" Height="16" Margin="-6,0,6,0" />
                         <TextBlock>Integrated Tools</TextBlock>
                     </StackPanel>
                 </TabItem.Header>
