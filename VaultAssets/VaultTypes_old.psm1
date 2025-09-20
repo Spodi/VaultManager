@@ -117,11 +117,9 @@ function Get-VaultAppData_Old {
   
         }
         else {
-            if ($Folder) {
-                $tools = [FileSystemEntries]::Get($Folder, 'Directory', 'TopDirectoryOnly') | & { process {
-                        [FileSystemEntries]::Get($_, 'Directory', 'TopDirectoryOnly')
-                    } }
-            }
+            $tools = [FileSystemEntries]::Get($Folder, 'Directory', 'TopDirectoryOnly') | & { process {
+                    [FileSystemEntries]::Get($_, 'Directory', 'TopDirectoryOnly')
+                } }
         }
 
         if (!$tools) {
@@ -131,7 +129,13 @@ function Get-VaultAppData_Old {
         $tools | & { process {
  
                 $categoryPath = [System.IO.Path]::GetDirectoryName($_)
-                $categoryFolder = Split-Path($categoryPath) -Leaf
+                if ($TabName) {
+                    $categoryFolder = Split-Path($categoryPath) -Leaf
+                }
+                else {
+                    $categoryFolder = Split-Path(Split-Path($categoryPath)) -Leaf
+                }
+
                 #$readmepath = [System.IO.Path]::Combine($_, 'Readme.txt')
                 $manifestpath = [System.IO.Path]::Combine($_, 'VaultManifest.json')
                 $hasFiles = [FileSystemEntries]::Get($_) | & { process { if ($_ -notmatch 'VaultManifest\.json$') { $_ } } } | Select-Object -First 1
