@@ -1,6 +1,7 @@
 using namespace System.Collections.Generic
 using namespace System.Windows.Controls
 using module '.\VaultAssets\VaultTypes.psm1'
+using module '.\VaultAssets\SpodiUtils.psm1'
 
 [CmdletBinding()]
 param (
@@ -427,12 +428,15 @@ $GUI.Nodes.FolderizeRegexBlack.Text = $RegexB
 #Add Auto-Tabs
 
 $LoadedData = [VaultData]::FromManifest('.\VaultAssets\DefaultManifest.json')
+if ($null -eq $LoadedData) {
+    $LoadedData = [VaultData]::new()  
+}
 #load Add-Ons
-Get-ChildItem '.\AddOns' -Filter '*.json' | & { process {   
-        $LoadedData.Merge([VaultData]::FromManifest($_.FullName))
+[FileSystemEntries]::Get('.\AddOns', '*.json') | & { process {  
+        $LoadedData.Merge([VaultData]::FromManifest($_))
     } }
 
-if ($null -ne $LoadedData) {
+if ($LoadedData.Tabs.Count -gt 0) {
     $LoadedData.Sort()
     Add-VaultAppTab $LoadedData | & { process { $GUI.Nodes.Tabs.AddChild($_) } }
 }
@@ -548,7 +552,7 @@ $GUI.WPF.AddHandler([Primitives.ButtonBase]::ClickEvent, [System.Windows.RoutedE
                         continue
                     }
                     '^ButtonCueGenStart$' {
-                        $files = [FileSystemEntries]::Get(($GUI.Nodes.CueGen.Text), 'File', 'TopDirectoryOnly') | Where-Object { [System.IO.Path]::GetExtension($_) -eq '.bin' -or [System.IO.Path]::GetExtension($_) -eq '.raw' }
+                        $files = [FileSystemEntries]::Get(($GUI.Nodes.CueGen.Text), [FSEntryType]::File, [System.IO.SearchOption]::TopDirectoryOnly) | Where-Object { [System.IO.Path]::GetExtension($_) -eq '.bin' -or [System.IO.Path]::GetExtension($_) -eq '.raw' }
                         if ($files) {
                             $cuecontent = New-CueFromFiles $files | ConvertTo-Cue
                             if ($cuecontent) {
